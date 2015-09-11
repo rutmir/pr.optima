@@ -1,10 +1,11 @@
-package main
+package server
 
 import (
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
+
 
 func NewRouter() *mux.Router {
 

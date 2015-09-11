@@ -10,6 +10,7 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="jdk" jdkName="Go 1.5.1" jdkType="Go SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="GOPATH &lt;entities&gt;" level="project" />
+    <orderEntry type="library" name="GOPATH &lt;GoRest&gt;" level="project" />
+    <orderEntry type="library" name="GOPATH &lt;server.rest&gt;" level="project" />
   </component>
 </module>
