@@ -9,6 +9,7 @@ type Cources struct {
 	Base       		string        		`json:"base"`
 	TimestampUnix  	int64        		`json:"timestamp"`
 	Disclaimer 		string        		`json"disclaimer"`
+	License			string				`json"license"`
 	Rates      		map[string]float32  `json"rates"`
 }
 
