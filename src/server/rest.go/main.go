@@ -1,18 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"./server"
-//	"io/ioutil"
 	"encoding/json"
-	"fmt"
+//	"io/ioutil"
 	"./entities"
+	"./server"
+	"./server/repository"
+	"./server/responses"
 )
 
 func main() {
-	var _cours entities.Cources
-	var _error entities.Error
+	var _rate responses.RateResponse
+	var _error responses.ErrorResponse
 
 	resp, err := http.Get("https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD")
 	if err != nil {
@@ -23,8 +25,20 @@ func main() {
 	dec := json.NewDecoder(resp.Body)
 
 	if resp.StatusCode == 200 {
-		dec.Decode(&_cours)
-		fmt.Print(_cours.ToString())
+		dec.Decode(&_rate)
+		fmt.Println(_rate.ToString())
+		if _, err := repository.AppendNewRate(entities.Rate{
+			Base    : _rate.Base,
+			Id      : _rate.TimestampUnix,
+			RUB     : _rate.Rates["RUB"],
+			JPY     : _rate.Rates["JPY"],
+			GBP     : _rate.Rates["GBP"],
+			USD     : _rate.Rates["USD"],
+			EUR     : _rate.Rates["EUR"],
+			CNY     : _rate.Rates["CNY"],
+			CHF     : _rate.Rates["CHF"]}) err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		dec.Decode(&_error)
 		fmt.Print(_error.ToString())

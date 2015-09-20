@@ -30,7 +30,7 @@ func TodoShow(w http.ResponseWriter, r *http.Request) {
 	// If we didn't find it, 404
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusNotFound)
-	if err := json.NewEncoder(w).Encode(responses.JsonErr{Code: http.StatusNotFound, Text: "Not Found"}); err != nil {
+	if err := json.NewEncoder(w).Encode(responses.ErrorResponse{Status: http.StatusNotFound, Message: "Not Found"}); err != nil {
 		panic(err)
 	}
 }
