@@ -10,6 +10,7 @@ import (
 	"./server"
 	"./server/repository"
 	"./server/responses"
+	"time"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 
 	if resp.StatusCode == 200 {
 		dec.Decode(&_rate)
-		fmt.Println(_rate.ToString())
+		/*fmt.Println(_rate.ToString())*/
 		if _, err := repository.AppendNewRate(entities.Rate{
 			Base    : _rate.Base,
 			Id      : _rate.TimestampUnix,
@@ -36,7 +37,7 @@ func main() {
 			USD     : _rate.Rates["USD"],
 			EUR     : _rate.Rates["EUR"],
 			CNY     : _rate.Rates["CNY"],
-			CHF     : _rate.Rates["CHF"]}) err != nil {
+			CHF     : _rate.Rates["CHF"]}); err != nil {
 			log.Fatal(err)
 		}
 	} else {
@@ -44,6 +45,27 @@ func main() {
 		fmt.Print(_error.ToString())
 	}
 
+	var i time.Duration = 1;
+	ticker := time.NewTicker(time.Second * i)
+	quit := make(chan struct {})
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				i = i + 1
+				ticker.Stop()
+				ticker = time.NewTicker(time.Second * i)
+				fmt.Printf("next tick: %v", time.Now())
+				fmt.Println("------")
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	fmt.Println("contunue")
 	router := server.NewRouter()
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
