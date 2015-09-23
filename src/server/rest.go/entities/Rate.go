@@ -5,15 +5,15 @@ import (
 )
 
 type Rate struct {
-	Base string                `json:"base"`
-	Id   int64                `json:"timestamp"`
-	RUB  float32 // Russian Ruble
-	JPY  float32 // Yen
-	GBP  float32 // Pound Sterling
-	USD  float32 // US Dollar
-	EUR  float32 // Euro
-	CNY  float32 // Yuan Renminbi
-	CHF  float32 // Swiss Franc
+	Base string     `json:"base"`
+	Id   int64      `json:"timestamp"`
+	RUB  float32    `json:"RUB"` // Russian Ruble
+	JPY  float32    `json:"JPY"` // Yen
+	GBP  float32    `json:"GBP"` // Pound Sterling
+	USD  float32    `json:"USD"` // US Dollar
+	EUR  float32    `json:"EUR"` // Euro
+	CNY  float32    `json:"CNY"` // Yuan Renminbi
+	CHF  float32    `json:"CHF"` // Swiss Franc
 }
 
 func (f Rate) ToString() string {

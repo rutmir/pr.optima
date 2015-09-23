@@ -11,11 +11,13 @@ import (
 	"./server/repository"
 	"./server/responses"
 	"time"
+	"strconv"
 )
 
 func main() {
 	var _rate responses.RateResponse
 	var _error responses.ErrorResponse
+	var _repo = repository.New()
 
 	resp, err := http.Get("https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD")
 	if err != nil {
@@ -24,11 +26,16 @@ func main() {
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
+	fmt.Println("repo length: " + strconv.Itoa(_repo.Len()))
+
+	if last, found := _repo.GetLast(); found == true {
+		fmt.Println(last.ToString())
+	}
 
 	if resp.StatusCode == 200 {
 		dec.Decode(&_rate)
 		/*fmt.Println(_rate.ToString())*/
-		if _, err := repository.AppendNewRate(entities.Rate{
+		if err := _repo.Push(entities.Rate{
 			Base    : _rate.Base,
 			Id      : _rate.TimestampUnix,
 			RUB     : _rate.Rates["RUB"],
@@ -43,6 +50,10 @@ func main() {
 	} else {
 		dec.Decode(&_error)
 		fmt.Print(_error.ToString())
+	}
+	fmt.Println("repo length: " + strconv.Itoa(_repo.Len()))
+	if last, found := _repo.GetLast(); found == true {
+		fmt.Println(last.ToString())
 	}
 
 	var i time.Duration = 1;
