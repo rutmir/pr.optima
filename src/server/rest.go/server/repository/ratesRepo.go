@@ -1,18 +1,21 @@
 package repository
 
 import (
+	"os"
 	"fmt"
+	"encoding/json"
 	"../../entities"
 )
 
 
+var _dataStoreFileName string
 var _limit int
 var _lastId int64
-var _rates  []entities.Rate
+var _rates []entities.Rate
 
 type saveObject struct {
-	limit int             `json:"limit"`
-	rates []entities.Rate `json:"rates"`
+	Limit int             `json:"limit"`
+	Rates []entities.Rate `json:"rates"`
 }
 
 type RateRepo interface {
@@ -94,7 +97,7 @@ func (rr rateRepo) run() {
 			if l > _limit {
 				_rates = _rates[l - _limit:]
 			}
-			command.error <- nil
+			command.error <- saveToFile()
 		case getAll:
 			command.data <- _rates
 		case getLast:
@@ -135,6 +138,7 @@ type RateRepoPushResult struct {
 /*var _in     chan RateRepoPush*/
 
 func init() {
+	_dataStoreFileName = "ratesData.json"
 	_limit = 9
 	/*_in = make(chan RateRepoPush)*/
 	/*RepoCreateTodo(entities.T_odo{Name: "Write presentation"})
@@ -147,7 +151,20 @@ func init() {
 	}()*/
 }
 
-func saveToFile(obj saveObject) error {
+func saveToFile() error {
+	dec, err := json.Marshal(saveObject{Limit: _limit, Rates:_rates})
+
+	if err != nil {
+		return err
+	}
+	if file, err := os.Create(_dataStoreFileName); err == nil {
+		defer file.Close()
+		if _, err := file.Write(dec); err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
 	return nil
 }
 
