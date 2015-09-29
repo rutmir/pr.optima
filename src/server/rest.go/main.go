@@ -5,13 +5,13 @@ import (
 	"log"
 	"net/http"
 	"encoding/json"
-//	"io/ioutil"
-	"./entities"
-	"./server"
-	"./server/repository"
-	"./server/responses"
-	"time"
 	"strconv"
+	"time"
+//	"io/ioutil"
+	"rest.go/entities"
+	"rest.go/server"
+	"rest.go/server/responses"
+	"rest.go/server/repository"
 )
 
 func main() {

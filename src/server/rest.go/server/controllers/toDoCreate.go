@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"../../entities"
-	"../repository"
+	"rest.go/entities"
+	"rest.go/server/repository"
 )
 
 /*

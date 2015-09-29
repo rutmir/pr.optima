@@ -2,7 +2,7 @@ package server
 
 import (
 	"net/http"
-	"./controllers"
+	"rest.go/server/controllers"
 )
 
 type Route struct {

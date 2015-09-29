@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"../repository"
+	"rest.go/server/repository"
 )
 
 func TodoIndex(w http.ResponseWriter, r *http.Request) {

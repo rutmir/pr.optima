@@ -4,7 +4,7 @@ import (
 	"os"
 	"fmt"
 	"encoding/json"
-	"../../entities"
+	"rest.go/entities"
 )
 
 

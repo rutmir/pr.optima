@@ -2,7 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"../../entities"
+	"rest.go/entities"
 )
 
 var currentId int
