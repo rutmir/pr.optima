@@ -1,18 +1,78 @@
 <component name="libraryTable">
   <library name="GOPATH &lt;server&gt;">
     <CLASSES>
+      <root url="file://C:/Go.Path/src/gopkg.in" />
+      <root url="file://C:/Go.Path/src/code.google.com" />
       <root url="file://C:/Go.Path/src/rest.go" />
+      <root url="file://C:/Go.Path/src/google.golang.org" />
+      <root url="file://C:/Go.Path/src/golcpserve" />
       <root url="file://C:/Go.Path/src/github.com" />
+      <root url="file://C:/Go.Path/src/golang.org" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
     <excluded>
-      <root url="file://$PROJECT_DIR$/entities" />
-      <root url="file://$PROJECT_DIR$/server" />
+      <root url="file://C:/Go.Path/src/gopkg.in/validator.v2/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/cmd/callgraph/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/gccgoimporter/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/cmd/stringer/testdata" />
       <root url="file://$PROJECT_DIR$" />
-      <root url="file://C:/Go.Path/src/github.com/gorilla/context/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/gcimporter/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/appengine/.git" />
+      <root url="file://C:/Go.Path/src/github.com/go-gl/gl/.git" />
+      <root url="file://C:/Go.Path/src/code.google.com/p/go-uuid/.hg" />
+      <root url="file://C:/Go.Path/src/golang.org/x/image/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/callgraph/rta/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/golang/freetype/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/net/html/charset/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/image/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/golang/freetype/testdata" />
+      <root url="file://$PROJECT_DIR$/entities" />
+      <root url="file://C:/Go.Path/src/github.com/golang/protobuf/protoc-gen-go/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/callgraph/cha/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/client/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/ssa/interp/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/server/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/goxjs/glfw/.git" />
+      <root url="file://C:/Go.Path/src/google.golang.org/api/.git" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/examples/route_guide/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/goxjs/gl/tests/testdata" />
       <root url="file://C:/Go.Path/src/github.com/gorilla/mux/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/pointer/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/ssa/testdata" />
+      <root url="file://C:/Go.Path/src/golcpserve/.idea" />
+      <root url="file://C:/Go.Path/src/github.com/goxjs/gl/.git" />
+      <root url="file://C:/Go.Path/src/github.com/gorilla/schema/.git" />
       <root url="file://C:/Go.Path/src/rest.go/.idea" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/loader/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/gorilla/context/.git" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/transport/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/kylelemons/go-gypsy/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/cmd/cover/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/go-gl/glfw/.git" />
+      <root url="file://C:/Go.Path/src/github.com/google/gxui/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/net/http2/testdata" />
+      <root url="file://$PROJECT_DIR$/server" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/.git" />
+      <root url="file://C:/Go.Path/src/google.golang.org/cloud/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/refactor/eg/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/api/google-api-go-generator/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/cmd/vet/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/types/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/oauth2/.git" />
+      <root url="file://C:/Go.Path/src/github.com/golang/protobuf/.git" />
+      <root url="file://C:/Go.Path/src/google.golang.org/cloud/storage/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/oauth2/google/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/net/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/image/font/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/cloud/datastore/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/golang/protobuf/proto/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/.git" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/oracle/testdata" />
+      <root url="file://C:/Go.Path/src/google.golang.org/grpc/test/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/cmd/fiximports/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/net/html/testdata" />
+      <root url="file://C:/Go.Path/src/golang.org/x/tools/go/ssa/ssautil/testdata" />
     </excluded>
   </library>
 </component>
