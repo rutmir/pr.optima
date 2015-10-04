@@ -2,7 +2,7 @@ package server
 
 import (
 	"net/http"
-	"rest.go/server/controllers"
+	"pr.optima/src/server/rest.go/server/controllers"
 )
 
 type Route struct {

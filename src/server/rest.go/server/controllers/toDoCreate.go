@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"rest.go/entities"
-	"rest.go/server/repository"
+	"pr.optima/src/core/entities"
+	"pr.optima/src/repository"
 )
 
 /*

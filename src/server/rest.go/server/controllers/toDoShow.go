@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"rest.go/server/repository"
-	"rest.go/server/responses"
+	"pr.optima/src/repository"
+	"pr.optima/src/server/rest.go/server/responses"
 )
 
 func TodoShow(w http.ResponseWriter, r *http.Request) {

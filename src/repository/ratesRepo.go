@@ -4,7 +4,7 @@ import (
 	"os"
 	"fmt"
 	"encoding/json"
-	"rest.go/entities"
+	"pr.optima/src/core/entities"
 )
 
 

@@ -2,7 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"rest.go/entities"
+	"pr.optima/src/core/entities"
 )
 
 var currentId int

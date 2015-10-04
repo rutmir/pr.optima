@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"rest.go/server/repository"
+	"pr.optima/src/repository"
 )
 
 func TodoIndex(w http.ResponseWriter, r *http.Request) {
