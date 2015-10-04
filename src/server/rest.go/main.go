@@ -31,7 +31,6 @@ func init() {
 	}
 	ticker := time.NewTicker(_next.Sub(_now))
 	quit := make(chan struct {})
-	fmt.Println(_next)
 
 	go func() {
 		for {
