@@ -30,6 +30,7 @@ func init() {
 		_next = _next.Add(time.Hour)
 	}
 	ticker := time.NewTicker(_next.Sub(_now))
+//	ticker := time.NewTicker(time.Second)
 	quit := make(chan struct {})
 
 	go func() {
