@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="GOPATH &lt;entities&gt;">
+  <library name="GOPATH &lt;statistic&gt;">
     <CLASSES>
       <root url="file://C:/Go.Path/src/golang.org" />
       <root url="file://C:/Go.Path/src/google.golang.org" />
@@ -9,6 +9,7 @@
     <JAVADOC />
     <SOURCES />
     <excluded>
+      <root url="file://$PROJECT_DIR$" />
       <root url="file://C:/Go.Path/src/golang.org/x/net/html/testdata" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/rest.go/.idea" />
@@ -24,7 +25,6 @@
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/.git" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/server/testdata" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/client/testdata" />
-      <root url="file://$PROJECT_DIR$" />
       <root url="file://C:/Go.Path/src/golang.org/x/oauth2/.git" />
       <root url="file://C:/Go.Path/src/github.com/gorilla/mux/.git" />
       <root url="file://C:/Go.Path/src/google.golang.org/api/google-api-go-generator/testdata" />

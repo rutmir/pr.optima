@@ -2,3 +2,5 @@ src/core/entities/.idea/workspace.xml
 src/repository/.idea/workspace.xml
 src/server/rest.go/.idea/workspace.xml
 src/grabber/.idea/workspace.xml
+src/core/statistic/.idea/workspace.xml
+src/core/neural/.idea/workspace.xml

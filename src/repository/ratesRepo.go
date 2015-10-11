@@ -18,6 +18,7 @@ const (
 	getAll
 	getLast
 	length
+	resize
 	end
 )
 const (
@@ -25,20 +26,19 @@ const (
 	king = "Rate"
 )
 var (
-	_step int = 5
-	_highLimit int = _step * 11
-	_lowLimit int = _step * 10
+	_limit int
 	_lastId int64
 	_rates []entities.Rate
 	_client *datastore.Client
 )
 
 type commandData struct {
-	action commandAction
-	value  entities.Rate
-	result chan <- interface{}
-	data   chan <- []entities.Rate
-	error  chan <- error
+	action    commandAction
+	value     entities.Rate
+	size      int
+	result    chan <- interface{}
+	data      chan <- []entities.Rate
+	error     chan <- error
 }
 type singleResult struct {
 	value entities.Rate
@@ -53,6 +53,7 @@ type RateRepo interface {
 	GetAll() []entities.Rate
 	GetLast() (entities.Rate, bool)
 	Close() []entities.Rate
+	Resize(int) (int, error)
 }
 
 func (rr rateRepo) Push(rate entities.Rate) error {
@@ -86,6 +87,21 @@ func (rr rateRepo) GetLast() (entities.Rate, bool) {
 	result := (<-reply).(singleResult)
 	return result.value, result.found
 }
+func (rr rateRepo) Resize(size int) (int, error) {
+	if size < 0 {
+		return -1, fmt.Errorf("Size parameter: %d must be positive value.", size)
+	}
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr <- commandData{action: resize, size: size, error: errReply, result: reply}
+	err := <-errReply
+	result := (<-reply).(int)
+	if err != nil {
+		return -1, error(err)
+	} else {
+		return result, nil
+	}
+}
 func (rr rateRepo) run() {
 	for command := range rr {
 		switch command.action {
@@ -98,14 +114,12 @@ func (rr rateRepo) run() {
 			if err == nil {
 				_lastId = command.value.Id
 				_rates = append(_rates, command.value)
-				var l = len(_rates)
-				if l > _highLimit {
-					_rates = _rates[l - _lowLimit :]
-					// ToDo: call rebuild statistics functionality here
+				l := len(_rates)
+				if l > _limit {
+					_rates = _rates[l - _limit :]
 				}
 			}
 			command.error <- err
-		//	command.error <- saveToFile()
 		case getAll:
 			command.data <- _rates
 		case getLast:
@@ -117,28 +131,24 @@ func (rr rateRepo) run() {
 			}
 		case length:
 			command.result <- len(_rates)
+		case resize:
+			l := len(_rates)
+			if l > command.size {
+				_rates = _rates[l - command.size :]
+				command.error <- nil
+				command.result <- len(_rates)
+			}else {
+				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
+				command.result <- -1
+			}
 		case end:
 			close(rr)
 			command.data <- _rates
 		}
 	}
 }
-func New() RateRepo {
-	rr := make(rateRepo)
-	go rr.run()
-	return rr
-}
-
-type RateRepoPush struct {
-	Rate   entities.Rate
-	Result chan <- RateRepoPushResult
-}
-type RateRepoPushResult struct {
-	Rate  entities.Rate
-	Error error
-}
-
-func init() {
+func New(limit int) RateRepo {
+	_limit = limit
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
@@ -161,11 +171,25 @@ func init() {
 	if err := loadStartData(); err != nil {
 		log.Fatal(err)
 	}
+
+	rr := make(rateRepo)
+	go rr.run()
+	return rr
 }
 
+type RateRepoPush struct {
+	Rate   entities.Rate
+	Result chan <- RateRepoPushResult
+}
+type RateRepoPushResult struct {
+	Rate  entities.Rate
+	Error error
+}
+
+// Cloud datastore logic
 func loadStartData() error {
 	var dst []entities.Rate
-	if _, err := _client.GetAll(context.Background(), datastore.NewQuery(king).Order("-id").Limit(_lowLimit), &dst); err != nil {
+	if _, err := _client.GetAll(context.Background(), datastore.NewQuery(king).Order("-id").Limit(_limit), &dst); err != nil {
 		return err
 	}
 	if dst != nil {
@@ -177,7 +201,6 @@ func loadStartData() error {
 	}
 	return nil
 }
-
 func insertNewRate(rate entities.Rate) (*datastore.Key, error) {
 	ctx := context.Background()
 	return _client.Put(ctx, datastore.NewKey(ctx, king, "", rate.Id, nil), &rate)
