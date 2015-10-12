@@ -468,7 +468,7 @@ public partial class alglib
             }
             result = true;
             return result;
-        }
+        } // golang
 
 
         /*************************************************************************
@@ -8395,7 +8395,7 @@ public partial class alglib
             public double width;
             public double width1;
             public double xtrapf;
-        };
+        }; // golang
 
 
         public class armijostate

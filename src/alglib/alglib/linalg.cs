@@ -23105,7 +23105,7 @@ public partial class alglib
         {
             public double r1;
             public double rinf;
-        };
+        }; // golang
 
 
 

@@ -210,7 +210,7 @@ public partial class alglib
         public bool[] ba;
         public double[] ra;
         public alglib.complex[] ca;
-    };
+    }; // golang
 
     /********************************************************************
     internal functions

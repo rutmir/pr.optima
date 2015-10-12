@@ -7700,7 +7700,7 @@ public partial class alglib
                 rstate = new rcommstate();
                 lstate = new linmin.linminstate();
             }
-        };
+        }; // golang
 
 
         public class minlbfgsreport
@@ -7708,7 +7708,7 @@ public partial class alglib
             public int iterationscount;
             public int nfev;
             public int terminationtype;
-        };
+        }; // golang
 
 
 
@@ -7782,7 +7782,7 @@ public partial class alglib
             ap.assert(ap.len(x)>=n, "MinLBFGSCreate: Length(X)<N!");
             ap.assert(apserv.isfinitevector(x, n), "MinLBFGSCreate: X contains infinite or NaN values!");
             minlbfgscreatex(n, m, x, 0, 0.0, state);
-        }
+        } // golang
 
 
         /*************************************************************************
@@ -8058,7 +8058,7 @@ public partial class alglib
                 state.s[i] = 1.0;
             }
             state.prectype = 0;
-        }
+        } // golang
 
 
         /*************************************************************************
