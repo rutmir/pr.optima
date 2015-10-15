@@ -1,11 +1,10 @@
 package mlpe
 
 import (
-	"pr.optima/src/core/neural/mlpbase"
 	"fmt"
-	"math/rand"
 	"math"
-	"core/neural/mlptrain"
+	"math/rand"
+	"pr.optima/src/core/neural/mlpbase"
 	"pr.optima/src/core/neural/mlptrain"
 )
 
@@ -875,11 +874,7 @@ Internal bagging subroutine.
   -- ALGLIB --
 	 Copyright 19.02.2009 by Bochkanov Sergey
 *************************************************************************/
-func mlpebagginginternal(
-ensemble *mlpensemble,
-xy *[][]float64,
-npoints int, decay float64,
-restarts int, wstep float64, maxits int, lmalgorithm bool, info *int, rep *mlptrain.MlpReport, ooberrors *mlptrain.MlpCvReport) {
+func mlpebagginginternal(ensemble *mlpensemble, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits int, lmalgorithm bool, info *int, rep *mlptrain.MlpReport, ooberrors *mlptrain.MlpCvReport) {
 	xys := [0][0]float64
 	s := [0]bool
 	oobbuf := [0][0]float64
@@ -988,9 +983,9 @@ restarts int, wstep float64, maxits int, lmalgorithm bool, info *int, rep *mlptr
 		// train
 		//
 		if lmalgorithm {
-			mlptrain.mlptrainlm(network, xys, npoints, decay, restarts, ref info, tmprep)
+			mlptrain.MlpTrainLm(network, xys, npoints, decay, restarts, info, tmprep)
 		}else {
-			mlptrain.mlptrainlbfgs(network, xys, npoints, decay, restarts, wstep, maxits, ref info, tmprep)
+			mlptrain.MlpTrainLbfgs(network, xys, npoints, decay, restarts, wstep, maxits, info, tmprep)
 		}
 		if info < 0 {
 			return
@@ -1064,6 +1059,483 @@ restarts int, wstep float64, maxits int, lmalgorithm bool, info *int, rep *mlptr
 	ooberrors.AvgError = dsbuf[3]
 	ooberrors.AvgrelError = dsbuf[4]
 	ooberrors.AvgrelError = dsbuf[4]
+}
+
+/*************************************************************************
+Training neural networks ensemble using  bootstrap  aggregating (bagging).
+Modified Levenberg-Marquardt algorithm is used as base training method.
+
+INPUT PARAMETERS:
+	Ensemble    -   model with initialized geometry
+	XY          -   training set
+	NPoints     -   training set size
+	Decay       -   weight decay coefficient, >=0.001
+	Restarts    -   restarts, >0.
+
+OUTPUT PARAMETERS:
+	Ensemble    -   trained model
+	Info        -   return code:
+					* -2, if there is a point with class number
+						  outside of [0..NClasses-1].
+					* -1, if incorrect parameters was passed
+						  (NPoints<0, Restarts<1).
+					*  2, if task has been solved.
+	Rep         -   training report.
+	OOBErrors   -   out-of-bag generalization error estimate
+
+  -- ALGLIB --
+	 Copyright 17.02.2009 by Bochkanov Sergey
+*************************************************************************/
+func MlpeBaggingLm(ensemble *mlpensemble, xy *[][]float64, npoints int, decay float64, restarts int, info *int, rep *mlptrain.MlpReport, ooberrors *mlptrain.MlpCvReport) {
+	info = 0
+	mlpebagginginternal(ensemble, xy, npoints, decay, restarts, 0.0, 0, true, info, rep, ooberrors)
+}
+
+/*************************************************************************
+Training neural networks ensemble using  bootstrap  aggregating (bagging).
+L-BFGS algorithm is used as base training method.
+
+INPUT PARAMETERS:
+	Ensemble    -   model with initialized geometry
+	XY          -   training set
+	NPoints     -   training set size
+	Decay       -   weight decay coefficient, >=0.001
+	Restarts    -   restarts, >0.
+	WStep       -   stopping criterion, same as in MLPTrainLBFGS
+	MaxIts      -   stopping criterion, same as in MLPTrainLBFGS
+
+OUTPUT PARAMETERS:
+	Ensemble    -   trained model
+	Info        -   return code:
+					* -8, if both WStep=0 and MaxIts=0
+					* -2, if there is a point with class number
+						  outside of [0..NClasses-1].
+					* -1, if incorrect parameters was passed
+						  (NPoints<0, Restarts<1).
+					*  2, if task has been solved.
+	Rep         -   training report.
+	OOBErrors   -   out-of-bag generalization error estimate
+
+  -- ALGLIB --
+	 Copyright 17.02.2009 by Bochkanov Sergey
+*************************************************************************/
+func MlpeBaggingLbfgs(ensemble *mlpensemble, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits int, info *int, rep *mlptrain.MlpReport, ooberrors *mlptrain.MlpCvReport) {
+	info = 0
+	mlpebagginginternal(ensemble, xy, npoints, decay, restarts, wstep, maxits, false, info, rep, ooberrors)
+}
+
+/*************************************************************************
+Training neural networks ensemble using early stopping.
+
+INPUT PARAMETERS:
+	Ensemble    -   model with initialized geometry
+	XY          -   training set
+	NPoints     -   training set size
+	Decay       -   weight decay coefficient, >=0.001
+	Restarts    -   restarts, >0.
+
+OUTPUT PARAMETERS:
+	Ensemble    -   trained model
+	Info        -   return code:
+					* -2, if there is a point with class number
+						  outside of [0..NClasses-1].
+					* -1, if incorrect parameters was passed
+						  (NPoints<0, Restarts<1).
+					*  6, if task has been solved.
+	Rep         -   training report.
+	OOBErrors   -   out-of-bag generalization error estimate
+
+  -- ALGLIB --
+	 Copyright 10.03.2009 by Bochkanov Sergey
+*************************************************************************/
+func MlpeTraines(ensemble *mlpensemble, xy *[][]float64, npoints int, decay float64, restarts int, info *int, rep *mlptrain.MlpReport) {
+	i := 0
+	k := 0
+	ccount := 0
+	pcount := 0
+	trnxy := [0][ 0]float64
+	valxy := [0][0]float64
+	trnsize := 0
+	valsize := 0
+	network := mlpbase.NewMlp()
+	tmpinfo := 0
+	tmprep := &mlptrain.MlpReport{}
+	i_ := 0
+	i1_ := 0
+
+	info = 0
+
+	if (npoints < 2 | restarts < 1) | decay < 0 {
+		info = -1
+		return
+	}
+	if ensemble.issoftmax {
+		for i = 0; i <= npoints - 1; i++ {
+			if int(round(xy[i][ ensemble.nin])) < 0 | int(round(xy[i][ ensemble.nin])) >= ensemble.nout {
+				info = -2
+				return
+			}
+		}
+	}
+	info = 6;
+
+	//
+	// allocate
+	//
+	if ensemble.issoftmax {
+		ccount = ensemble.nin + 1
+		pcount = ensemble.nin
+	}else {
+		ccount = ensemble.nin + ensemble.nout
+		pcount = ensemble.nin + ensemble.nout
+	}
+	trnxy = [npoints - 1 + 1][ ccount - 1 + 1]float64
+	valxy = [npoints - 1 + 1][ ccount - 1 + 1]float64
+	mlpbase.MlpUnserializeOld(ensemble.serializedmlp, network)
+	rep.NGrad = 0
+	rep.NHess = 0
+	rep.NCholesky = 0
+
+	//
+	// train networks
+	//
+	for k = 0; k <= ensemble.ensemblesize - 1; k++ {
+		//
+		// Split set
+		//
+		_loop := true
+		for _loop {
+			trnsize = 0
+			valsize = 0
+			for i = 0; i <= npoints - 1; i++ {
+				if rand.Float64() < 0.66 {
+					//
+					// Assign sample to training set
+					//
+					for i_ = 0; i_ <= ccount - 1; i_++ {
+						trnxy[trnsize][ i_] = xy[i][ i_]
+					}
+					trnsize = trnsize + 1
+				}            else {
+
+					//
+					// Assign sample to validation set
+					//
+					for i_ = 0; i_ <= ccount - 1; i_++ {
+						valxy[valsize][ i_] = xy[i][ i_]
+					}
+					valsize = valsize + 1
+				}
+			}
+			_loop = !(trnsize != 0 & valsize != 0)
+		}
+
+		//
+		// Train
+		//
+		mlptrain.MlpTraines(network, trnxy, trnsize, valxy, valsize, decay, restarts, &tmpinfo, tmprep)
+		if tmpinfo < 0 {
+			info = tmpinfo
+			return
+		}
+
+		//
+		// save results
+		//
+		i1_ = (0) - (k * ensemble.wcount)
+		for i_ = k * ensemble.wcount; i_ <= (k + 1) * ensemble.wcount - 1; i_++ {
+			ensemble.weights[i_] = network.Weights[i_ + i1_]
+		}
+		i1_ = (0) - (k * pcount)
+		for i_ = k * pcount; i_ <= (k + 1) * pcount - 1; i_++ {
+			ensemble.columnmeans[i_] = network.ColumnMeans[i_ + i1_]
+		}
+		i1_ = (0) - (k * pcount)
+		for i_ = k * pcount; i_ <= (k + 1) * pcount - 1; i_++ {
+			ensemble.columnsigmas[i_] = network.ColumnMeans[i_ + i1_]
+		}
+		rep.NGrad = rep.NGrad + tmprep.NGrad
+		rep.NHess = rep.NHess + tmprep.NHess
+		rep.NCholesky = rep.NCholesky + tmprep.NCholesky
+	}
+}
+
+/*************************************************************************
+Subroutine prepares K-fold split of the training set.
+
+NOTES:
+	"NClasses>0" means that we have classification task.
+	"NClasses<0" means regression task with -NClasses real outputs.
+*************************************************************************/
+func mlpkfoldsplit(xy *[][]float64, npoints, nclasses, foldscount int, stratifiedsplits bool, folds *[]int) {
+	i := 0
+	j := 0
+	k := 0
+
+	folds = [0]int
+
+
+	//
+	// test parameters
+	//
+	if !(npoints > 0) {
+		return fmt.Errorf("MLPKFoldSplit: wrong NPoints!")
+	}
+	if !(nclasses > 1 | nclasses < 0) {
+		return fmt.Errorf("MLPKFoldSplit: wrong NClasses!")
+	}
+	if !(foldscount >= 2 & foldscount <= npoints) {
+		return fmt.Errorf("MLPKFoldSplit: wrong FoldsCount!")
+	}
+	if !(!stratifiedsplits) {
+		return fmt.Errorf("MLPKFoldSplit: stratified splits are not supported!")
+	}
+
+	//
+	// Folds
+	//
+	folds = [npoints - 1 + 1]int
+	for i = 0; i <= npoints - 1; i++ {
+		folds[i] = i * foldscount / npoints
+	}
+	for i = 0; i <= npoints - 2; i++ {
+		j = i + rand.Intn(npoints - i)
+		if j != i {
+			k = folds[i]
+			folds[i] = folds[j]
+			folds[j] = k
+		}
+	}
+}
+
+/*************************************************************************
+Internal cross-validation subroutine
+*************************************************************************/
+func mlpkfoldcvgeneral(n *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, lmalgorithm bool, wstep float64, maxits bool, info *int, rep mlptrain.MlpReport, cvrep mlptrain.MlpCvReport) {
+	i := 0
+	fold := 0
+	j := 0
+	k := 0
+	network := mlpbase.NewMlp()
+	nin := 0
+	nout := 0
+	rowlen := 0
+	wcount := 0
+	nclasses := 0
+	tssize := 0
+	cvssize := 0
+	cvset := [0][0]float64
+	testset := [0][0]float64
+	folds := [0]int
+	relcnt := 0
+	internalrep := &mlptrain.MlpReport{}
+	x := [0]float64
+	y := [0]float64
+	i_ := 0
+
+	info = 0;
+
+
+	//
+	// Read network geometry, test parameters
+	//
+	mlpbase.MlpProperties(n, &nin, &nout, &wcount)
+	if mlpbase.MlpIsSoftMax(n) {
+		nclasses = nout
+		rowlen = nin + 1
+	}else {
+		nclasses = -nout
+		rowlen = nin + nout
+	}
+	if ( (npoints <= 0 | foldscount < 2) | foldscount > npoints )
+	{
+		info = -1;
+		return;
+	}
+	mlpbase.MlpCopy(n, network)
+
+	//
+	// K-fold out cross-validation.
+	// First, estimate generalization error
+	//
+	testset = [npoints - 1 + 1][ rowlen - 1 + 1]float64
+	cvset = [npoints - 1 + 1][ rowlen - 1 + 1]float64
+	x = [nin - 1 + 1]float64
+	y = [nout - 1 + 1]float64
+	mlpkfoldsplit(xy, npoints, nclasses, foldscount, false, &folds)
+	cvrep.RelclsError = 0
+	cvrep.Avgce = 0
+	cvrep.RmsError = 0
+	cvrep.AvgError = 0
+	cvrep.AvgrelError = 0
+	rep.NGrad = 0
+	rep.NHess = 0
+	rep.NCholesky = 0
+	relcnt = 0
+	for fold = 0; fold <= foldscount - 1; fold++ {
+		//
+		// Separate set
+		//
+		tssize = 0
+		cvssize = 0
+		for i = 0; i <= npoints - 1; i++ {
+			if folds[i] == fold {
+				for i_ = 0; i_ <= rowlen - 1; i_++ {
+					testset[tssize][ i_] = xy[i][ i_]
+				}
+				tssize = tssize + 1;
+
+			}    else {
+				for (i_ = 0; i_ <= rowlen - 1; i_++)
+				{
+				cvset[cvssize, i_] = xy[i, i_];
+				}
+				cvssize = cvssize + 1;
+			}
+		}
+
+		//
+		// Train on CV training set
+		//
+		if lmalgorithm {
+			mlptrain.MlpTrainLm(network, cvset, cvssize, decay, restarts, info, internalrep)
+		}else {
+			mlptrain.MlpTrainLbfgs(network, cvset, cvssize, decay, restarts, wstep, maxits, info, internalrep)
+		}
+		if info < 0 {
+			cvrep.RelclsError = 0
+			cvrep.Avgce = 0
+			cvrep.RmsError = 0
+			cvrep.AvgError = 0
+			cvrep.AvgrelError = 0
+			return
+		}
+		rep.NGrad = rep.NGrad + internalrep.NGrad
+		rep.NHess = rep.NHess + internalrep.NHess
+		rep.NCholesky = rep.NCholesky + internalrep.NCholesky
+
+		//
+		// Estimate error using CV test set
+		//
+		if mlpbase.MlpIsSoftMax(network) {
+			//
+			// classification-only code
+			//
+			cvrep.RelclsError = cvrep.RelclsError + mlpbase.MlpClsError(network, testset, tssize)
+			cvrep.Avgce = cvrep.Avgce + mlpbase.MlpErrorN(network, testset, tssize)
+		}
+		for i = 0; i <= tssize - 1; i++ {
+			for i_ = 0; i_ <= nin - 1; i_++ {
+				x[i_] = testset[i][ i_]
+			}
+			mlpbase.MlpProcess(network, &x, &y)
+			if mlpbase.MlpIsSoftMax(network) {
+				//
+				// Classification-specific code
+				//
+				k = int(round(testset[i][ nin]))
+				for j = 0; j <= nout - 1; j++ {
+					if j == k {
+						_y := y[j] - 1
+						cvrep.RmsError = cvrep.RmsError + (_y * _y)
+						cvrep.AvgError = cvrep.AvgError + math.Abs(_y)
+						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs(_y)
+						relcnt = relcnt + 1
+					}else {
+						cvrep.RmsError = cvrep.RmsError + (y[j] * y[j])
+						cvrep.AvgError = cvrep.AvgError + math.Abs(y[j])
+					}
+				}
+			}else {
+				//
+				// Regression-specific code
+				//
+				for j = 0; j <= nout - 1; j++ {
+					_y := y[j] - testset[i][ nin + j]
+					cvrep.RmsError = cvrep.RmsError + (_y * _y)
+					cvrep.AvgError = cvrep.AvgError + math.Abs(_y)
+					if testset[i][ nin + j] != 0 {
+						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs((y[j] - testset[i][ nin + j]) / testset[i][ nin + j])
+						relcnt = relcnt + 1
+					}
+				}
+			}
+		}
+	}
+	if mlpbase.MlpIsSoftMax(network) {
+		cvrep.RelclsError = cvrep.RelclsError / npoints
+		cvrep.Avgce = cvrep.Avgce / (math.Log(2) * npoints)
+	}
+	cvrep.RmsError = math.Sqrt(cvrep.RmsError / (npoints * nout))
+	cvrep.AvgError = cvrep.AvgError / (npoints * nout)
+	cvrep.AvgrelError = cvrep.AvgrelError / relcnt
+	info = 1
+}
+
+/*************************************************************************
+Cross-validation estimate of generalization error.
+
+Base algorithm - L-BFGS.
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry.   Network is
+					not changed during cross-validation -  it is used only
+					as a representative of its architecture.
+	XY          -   training set.
+	SSize       -   training set size
+	Decay       -   weight  decay, same as in MLPTrainLBFGS
+	Restarts    -   number of restarts, >0.
+					restarts are counted for each partition separately, so
+					total number of restarts will be Restarts*FoldsCount.
+	WStep       -   stopping criterion, same as in MLPTrainLBFGS
+	MaxIts      -   stopping criterion, same as in MLPTrainLBFGS
+	FoldsCount  -   number of folds in k-fold cross-validation,
+					2<=FoldsCount<=SSize.
+					recommended value: 10.
+
+OUTPUT PARAMETERS:
+	Info        -   return code, same as in MLPTrainLBFGS
+	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+	CVRep       -   generalization error estimates
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func mlpkfoldcvlbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits, foldscount int, info *int, rep *mlptrain.MlpReport, cvrep *mlptrain.MlpCvReport) {
+	info = 0
+	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, false, wstep, maxits, info, rep, cvrep)
+}
+
+/*************************************************************************
+Cross-validation estimate of generalization error.
+
+Base algorithm - Levenberg-Marquardt.
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry.   Network is
+					not changed during cross-validation -  it is used only
+					as a representative of its architecture.
+	XY          -   training set.
+	SSize       -   training set size
+	Decay       -   weight  decay, same as in MLPTrainLBFGS
+	Restarts    -   number of restarts, >0.
+					restarts are counted for each partition separately, so
+					total number of restarts will be Restarts*FoldsCount.
+	FoldsCount  -   number of folds in k-fold cross-validation,
+					2<=FoldsCount<=SSize.
+					recommended value: 10.
+
+OUTPUT PARAMETERS:
+	Info        -   return code, same as in MLPTrainLBFGS
+	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+	CVRep       -   generalization error estimates
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func mlpkfoldcvlm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, info *int, rep *mlptrain.MlpReport, cvrep *mlptrain.MlpCvReport) {
+	info = 0;
+	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, true, 0.0, 0, info, rep, cvrep)
 }
 
 func round(f float64) float64 {

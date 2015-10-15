@@ -20,40 +20,40 @@ const (
 type Multilayerperceptron struct {
 	hlnetworktype int
 	hlnormtype    int
-	HlLayerSizes [...]int
-	HlConnections [...]int
-	HlNeurons [...]int
-	StructInfo [...]int
-	Weights [...]float64
-	ColumnMeans [...]float64
-	ColumnSigmas [...]float64
-	Neurons [...]float64
-	DfdNet [...]float64
-	DError [...]float64
-	X [...]float64
-	Y [...]float64
-	Chunks [...][...]float64
-	NwBuf [...]float64
-	IntegerBuf [...]int
+	HlLayerSizes  []int
+	HlConnections []int
+	HlNeurons     []int
+	StructInfo    []int
+	Weights       []float64
+	ColumnMeans   []float64
+	ColumnSigmas  []float64
+	Neurons       []float64
+	DfdNet        []float64
+	DError        []float64
+	X             []float64
+	Y             []float64
+	Chunks        [][]float64
+	NwBuf         []float64
+	IntegerBuf    []int
 }
 
 func NewMlp() *Multilayerperceptron {
 	return &Multilayerperceptron{
-		HlLayerSizes: [0]int,
-		HlConnections: [0]int,
-		HlNeurons: [0]int,
-		StructInfo: [0]int,
-		Weights: [0]float64,
-		ColumnMeans: [0]float64,
-		ColumnSigmas: [0]float64,
-		Neurons: [0]float64,
-		DfdNet: [0]float64,
-		DError: [0]float64,
-		X: [0]float64,
-		Y: [0]float64,
-		Chunks: [0][0]float64,
-		NwBuf: [0]float64,
-		IntegerBuf: [0]int}
+		HlLayerSizes: []int{},
+		HlConnections: []int{},
+		HlNeurons: []int{},
+		StructInfo: []int{},
+		Weights: []float64{},
+		ColumnMeans: []float64{},
+		ColumnSigmas: []float64{},
+		Neurons: []float64{},
+		DfdNet: []float64{},
+		DError: []float64{},
+		X: []float64{},
+		Y: []float64{},
+		Chunks: [][]float64{},
+		NwBuf: []float64{},
+		IntegerBuf: []int{}}
 }
 
 /*************************************************************************
@@ -71,10 +71,10 @@ func MlpCreate0(nin, nout int, network *Multilayerperceptron) error {
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -109,10 +109,10 @@ func MlpCreate1(nin, nhid, nout int, network *Multilayerperceptron) error {
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -152,10 +152,10 @@ func MlpCreate2(nin, nhid1, nhid2, nout int, network *Multilayerperceptron) erro
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -211,10 +211,10 @@ func MlpCreateb0(nin, nout int, b, d float64, network *Multilayerperceptron) err
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -228,7 +228,7 @@ func MlpCreateb0(nin, nout int, b, d float64, network *Multilayerperceptron) err
 	//
 	// Create
 	//
-	if err := mlpcreate(nin, nout, &lsizes, &ltypes, &lconnfirst, &lconnlast, &layerscount, false, network); err != nil {
+	if err := mlpcreate(nin, nout, &lsizes, &ltypes, &lconnfirst, &lconnlast, layerscount, false, network); err != nil {
 		return err
 	}
 	fillhighlevelinformation(network, nin, 0, 0, nout, false, false)
@@ -262,10 +262,10 @@ func MlpCreateb1(nin, nhid, nout int, b, d float64, network *Multilayerperceptro
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -318,10 +318,10 @@ func MlpCreateb2(nin, nhid1, nhid2, nout int, b, d float64, network *Multilayerp
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -373,15 +373,15 @@ func MlpCreater0(nin, nout int, a, b float64, network *Multilayerperceptron) err
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
 	//
-	addinputlayer(nin, &lsizes, &ltypes, &lconnfirst, &lconnlast, lastproc)
+	addinputlayer(nin, &lsizes, &ltypes, &lconnfirst, &lconnlast, &lastproc)
 	addbiasedsummatorlayer(nout, &lsizes, &ltypes, &lconnfirst, &lconnlast, &lastproc)
 	if err := addactivationlayer(1, &lsizes, &ltypes, &lconnfirst, &lconnlast, &lastproc); err != nil {
 		return err
@@ -418,10 +418,10 @@ func MlpCreater1(nin, nhid, nout int, a, b float64, network *Multilayerperceptro
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1] int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([] int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -467,10 +467,10 @@ func MlpCreater2(nin, nhid1, nhid2, nout int, a, b float64, network *Multilayerp
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -527,10 +527,10 @@ func MlpCreatec0(nin, nout int, network *Multilayerperceptron) error {
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -542,7 +542,7 @@ func MlpCreatec0(nin, nout int, network *Multilayerperceptron) error {
 	//
 	// Create
 	//
-	if err := mlpcreate(nin, nout, &lsizes, &ltypes, &lconnfirst, &lconnlast, &layerscount, true, network); err != nil {
+	if err := mlpcreate(nin, nout, &lsizes, &ltypes, &lconnfirst, &lconnlast, layerscount, true, network); err != nil {
 		return err
 	}
 	fillhighlevelinformation(network, nin, 0, 0, nout, true, true)
@@ -566,10 +566,10 @@ func MlpCreatec1(nin, nhid, nout int, network *Multilayerperceptron) error {
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -609,10 +609,10 @@ func MlpCreatec2(nin, nhid1, nhid2, nout int, network *Multilayerperceptron) err
 	//
 	// Allocate arrays
 	//
-	lsizes := [layerscount - 1 + 1]int
-	ltypes := [layerscount - 1 + 1]int
-	lconnfirst := [layerscount - 1 + 1]int
-	lconnlast := [layerscount - 1 + 1]int
+	lsizes := make([]int, layerscount - 1 + 1)
+	ltypes := make([]int, layerscount - 1 + 1)
+	lconnfirst := make([]int, layerscount - 1 + 1)
+	lconnlast := make([]int, layerscount - 1 + 1)
 
 	//
 	// Layers
@@ -713,29 +713,29 @@ func MlpSerializeOld(network *Multilayerperceptron, ra *[]float64, rlen *int) {
 	//      SigmaLen    ColumnMeans
 	//      SigmaLen    ColumnSigmas
 	//
-	rlen = 3 + ssize + wcount + 2 * sigmalen
-	ra = [rlen - 1 + 1]float64
-	ra[0] = rlen
-	ra[1] = mlpvnum
-	ra[2] = ssize
+	*rlen = 3 + ssize + wcount + 2 * sigmalen
+	*ra = make([]float64, *rlen - 1 + 1)
+	(*ra)[0] = float64(*rlen)
+	(*ra)[1] = mlpvnum
+	(*ra)[2] = float64(ssize)
 	offs := 3
 	for i := 0; i <= ssize - 1; i++ {
-		ra[offs + i] = network.StructInfo[i]
+		(*ra)[offs + i] = float64(network.StructInfo[i])
 	}
 	offs = offs + ssize
 	i1_ := (0) - (offs)
 	for i := offs; i <= offs + wcount - 1; i++ {
-		ra[i] = network.Weights[i + i1_]
+		(*ra)[i] = network.Weights[i + i1_]
 	}
 	offs = offs + wcount
 	i1_ = (0) - (offs)
 	for i := offs; i <= offs + sigmalen - 1; i++ {
-		ra[i] = network.ColumnMeans[i + i1_]
+		(*ra)[i] = network.ColumnMeans[i + i1_]
 	}
 	offs = offs + sigmalen
 	i1_ = (0) - (offs)
 	for i := offs; i <= offs + sigmalen - 1; i++ {
-		ra[i] = network.ColumnSigmas[i + i1_];
+		(*ra)[i] = network.ColumnSigmas[i + i1_]
 	}
 	offs = offs + sigmalen
 }
@@ -768,7 +768,7 @@ func MlpUnserializeOld(ra []float64, network *Multilayerperceptron) error {
 	//
 	offs := 3
 	ssize = int(round(ra[2]))
-	network.StructInfo = [ssize - 1 + 1]int
+	network.StructInfo = make([]int, ssize - 1 + 1)
 	for i := 0; i <= ssize - 1; i++ {
 		network.StructInfo[i] = int(round(ra[offs + i]))
 	}
@@ -791,16 +791,16 @@ func MlpUnserializeOld(ra []float64, network *Multilayerperceptron) error {
 	//
 	// Allocate space for other fields
 	//
-	network.Weights = [wcount - 1 + 1]float64
-	network.ColumnMeans = [sigmalen - 1 + 1]float64
-	network.ColumnSigmas = [sigmalen - 1 + 1]float64
-	network.Neurons = [ntotal - 1 + 1]float64
-	network.Chunks = [3 * ntotal + 1][ chunksize - 1 + 1]float64
-	network.NwBuf = [math.Max(wcount, 2 * nout) - 1 + 1]float64
-	network.DfdNet = [ntotal - 1 + 1]float64
-	network.X = [nin - 1 + 1]float64
-	network.Y = [nout - 1 + 1]float64
-	network.DError = [ntotal - 1 + 1]float64
+	network.Weights = make([]float64, wcount - 1 + 1)
+	network.ColumnMeans = make([]float64, sigmalen - 1 + 1)
+	network.ColumnSigmas = make([]float64, sigmalen - 1 + 1)
+	network.Neurons = make([]float64, ntotal - 1 + 1)
+	network.Chunks = makeEmptyFloat64Matrix(3 * ntotal + 1, chunksize - 1 + 1)
+	network.NwBuf = make([]float64, maxInt(wcount, 2 * nout) - 1 + 1)
+	network.DfdNet = make([]float64, ntotal - 1 + 1)
+	network.X = make([]float64, nin - 1 + 1)
+	network.Y = make([]float64, nout - 1 + 1)
+	network.DError = make([]float64, ntotal - 1 + 1)
 
 	//
 	// Copy parameters from RA
@@ -874,12 +874,12 @@ func MlpRandomizeFull(network *Multilayerperceptron) {
 				//
 				network.ColumnMeans[nin + i] = 2 * rand.Float64() - 1
 			}
-			if ntype == 0 | ntype == 3 {
+			if ntype == 0 || ntype == 3 {
 				//
 				// Scales are changed only for linear or bounded outputs neurons.
 				// Note that scale randomization preserves sign.
 				//
-				network.ColumnSigmas[nin + i] = sign(network.ColumnSigmas[nin + i]) * (1.5 * rand.Float64() + 0.5)
+				network.ColumnSigmas[nin + i] = float64(sign(network.ColumnSigmas[nin + i])) * (1.5 * rand.Float64() + 0.5)
 			}
 		}
 	}
@@ -898,8 +898,6 @@ func MlpInitPreprocessor(network *Multilayerperceptron, xy [][]float64, ssize in
 	wcount := 0
 	offs := 0
 	ntype := 0
-	means := [0]float64
-	sigmas := [0]float64
 	s := .0;
 
 	MlpProperties(network, &nin, &nout, &wcount)
@@ -914,19 +912,19 @@ func MlpInitPreprocessor(network *Multilayerperceptron, xy [][]float64, ssize in
 	}else {
 		jmax = nin + nout - 1
 	}
-	means = [jmax + 1]float64
-	sigmas = [jmax + 1]float64
+	means := make([]float64, jmax + 1)
+	sigmas := make([]float64, jmax + 1)
 	for j := 0; j <= jmax; j++ {
 		means[j] = 0
 		for i := 0; i <= ssize - 1; i++ {
 			means[j] = means[j] + xy[i][ j]
 		}
-		means[j] = means[j] / ssize
+		means[j] = means[j] / float64(ssize)
 		sigmas[j] = 0
 		for i := 0; i <= ssize - 1; i++ {
 			sigmas[j] = sigmas[j] + math.Sqrt(xy[i][ j] - means[j])
 		}
-		sigmas[j] = math.Sqrt(sigmas[j] / ssize)
+		sigmas[j] = math.Sqrt(sigmas[j] / float64(ssize))
 	}
 
 	//
@@ -965,12 +963,12 @@ func MlpInitPreprocessor(network *Multilayerperceptron, xy [][]float64, ssize in
 			if ntype == 3 {
 				s = means[nin + i] - network.ColumnMeans[nin + i]
 				if s == 0 {
-					s = sign(network.ColumnSigmas[nin + i])
+					s = float64(sign(network.ColumnSigmas[nin + i]))
 				}
 				if s == 0 {
 					s = 1.0
 				}
-				network.ColumnSigmas[nin + i] = sign(network.ColumnSigmas[nin + i]) * math.Abs(s)
+				network.ColumnSigmas[nin + i] = float64(sign(network.ColumnSigmas[nin + i])) * math.Abs(s)
 				if network.ColumnSigmas[nin + i] == 0 {
 					network.ColumnSigmas[nin + i] = 1
 				}
@@ -987,9 +985,9 @@ weights.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpProperties(network *Multilayerperceptron, nin, nout, wcount *int) {
-	nin = network.StructInfo[1]
-	nout = network.StructInfo[2]
-	wcount = network.StructInfo[4]
+	*nin = network.StructInfo[1]
+	*nout = network.StructInfo[2]
+	*wcount = network.StructInfo[4]
 }
 
 /*************************************************************************
@@ -1026,7 +1024,7 @@ connections - it is just zero.
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
 func MlpGetLayerSize(network *Multilayerperceptron, k int) (int, error) {
-	if !(k >= 0 & k < len(network.HlLayerSizes)) {
+	if !(k >= 0 && k < len(network.HlLayerSizes)) {
 		return -1, fmt.Errorf("MLPGetLayerSize: incorrect layer index")
 	}
 	return network.HlLayerSizes[k], nil
@@ -1052,15 +1050,14 @@ before feeding to the network
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
 func MlpGetInputScaling(network *Multilayerperceptron, i int, mean, sigma *float64) error {
-
-	if !(i >= 0 & i < network.HlLayerSizes[0]) {
-		return -1, fmt.Errorf("MLPGetInputScaling: incorrect (nonexistent) I")
+	if !(i >= 0 && i < network.HlLayerSizes[0]) {
+		return fmt.Errorf("MLPGetInputScaling: incorrect (nonexistent) I")
 	}
 
-	mean = network.ColumnMeans[i]
-	sigma = network.ColumnSigmas[i]
-	if sigma == 0 {
-		sigma = 1
+	*mean = network.ColumnMeans[i]
+	*sigma = network.ColumnSigmas[i]
+	if *sigma == 0 {
+		*sigma = 1
 	}
 	return nil
 }
@@ -1086,15 +1083,15 @@ we return (Mean,Sigma)=(0.0,1.0).
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
 func MlpGetOutputScaling(network *Multilayerperceptron, i int, mean, sigma *float64) error {
-	if !(i >= 0 & i < network.HlLayerSizes[len(network.HlLayerSizes) - 1]) {
-		return -1, fmt.Errorf("MLPGetOutputScaling: incorrect (nonexistent) I")
+	if !(i >= 0 && i < network.HlLayerSizes[len(network.HlLayerSizes) - 1]) {
+		return fmt.Errorf("MLPGetOutputScaling: incorrect (nonexistent) I")
 	}
 	if network.StructInfo[6] == 1 {
-		mean = 0;
-		sigma = 1;
+		*mean = 0;
+		*sigma = 1;
 	}else {
-		mean = network.ColumnMeans[network.HlLayerSizes[0] + i]
-		sigma = network.ColumnSigmas[network.HlLayerSizes[0] + i]
+		*mean = network.ColumnMeans[network.HlLayerSizes[0] + i]
+		*sigma = network.ColumnSigmas[network.HlLayerSizes[0] + i]
 	}
 	return nil
 }
@@ -1120,8 +1117,8 @@ do not exists.
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
 func MlpGetNeuronInfo(network *Multilayerperceptron, k, i int, fkind *int, threshold *float64) error {
-	fkind = 0
-	threshold = 0
+	*fkind = 0
+	*threshold = 0
 	ncnt := len(network.HlNeurons) / hlnfieldwidth
 	istart := network.StructInfo[5]
 
@@ -1141,14 +1138,14 @@ func MlpGetNeuronInfo(network *Multilayerperceptron, k, i int, fkind *int, thres
 	//
 	if network.HlNeurons[highlevelidx * hlnfieldwidth + 2] >= 0 {
 		activationoffset := istart + network.HlNeurons[highlevelidx * hlnfieldwidth + 2] * nfieldwidth
-		fkind = network.StructInfo[activationoffset + 0]
+		*fkind = network.StructInfo[activationoffset + 0]
 	}else {
-		fkind = 0
+		*fkind = 0
 	}
 	if network.HlNeurons[highlevelidx * hlnfieldwidth + 3] >= 0 {
-		threshold = network.Weights[network.HlNeurons[highlevelidx * hlnfieldwidth + 3]]
+		*threshold = network.Weights[network.HlNeurons[highlevelidx * hlnfieldwidth + 3]]
 	}else {
-		threshold = 0
+		*threshold = 0
 	}
 	return nil
 }
@@ -1178,16 +1175,16 @@ func MlpGetWeight(network *Multilayerperceptron, k0, i0, k1, i1 int) (float64, e
 	//
 	// check params
 	//
-	if !(k0 >= 0 & k0 < len(network.HlLayerSizes)) {
+	if !(k0 >= 0 && k0 < len(network.HlLayerSizes)) {
 		return .0, fmt.Errorf("MLPGetWeight: incorrect (nonexistent) K0")
 	}
-	if !(i0 >= 0 & i0 < network.HlLayerSizes[k0]) {
+	if !(i0 >= 0 && i0 < network.HlLayerSizes[k0]) {
 		return .0, fmt.Errorf("MLPGetWeight: incorrect (nonexistent) K0")
 	}
-	if !(k1 >= 0 & k1 < len(network.HlLayerSizes)) {
+	if !(k1 >= 0 && k1 < len(network.HlLayerSizes)) {
 		return .0, fmt.Errorf("MLPGetWeight: incorrect (nonexistent) K1")
 	}
-	if !(i1 >= 0 & i1 < network.HlLayerSizes[k1]) {
+	if !(i1 >= 0 && i1 < network.HlLayerSizes[k1]) {
 		return .0, fmt.Errorf("MLPGetWeight: incorrect (nonexistent) I1")
 	}
 
@@ -1228,18 +1225,18 @@ before feeding to the network. This function sets Mean and Sigma.
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
 func MlpSetInputScaling(network *Multilayerperceptron, i int, mean, sigma float64) error {
-	if !(i >= 0 & i < network.HlLayerSizes[0]) {
-		return .0, fmt.Errorf("MLPSetInputScaling: incorrect (nonexistent) I")
+	if !(i >= 0 && i < network.HlLayerSizes[0]) {
+		return fmt.Errorf("MLPSetInputScaling: incorrect (nonexistent) I")
 	}
 	if !(isfinite(mean)) {
-		return .0, fmt.Errorf("MLPSetInputScaling: infinite or NAN Mean")
+		return fmt.Errorf("MLPSetInputScaling: infinite or NAN Mean")
 	}
 	if !(isfinite(sigma)) {
-		return .0, fmt.Errorf("MLPSetInputScaling: infinite or NAN Sigma")
+		return fmt.Errorf("MLPSetInputScaling: infinite or NAN Sigma")
 	}
 
 	if sigma == 0 {
-		sigma = 1.
+		sigma = 1
 	}
 	network.ColumnMeans[i] = mean
 	network.ColumnSigmas[i] = sigma
@@ -1267,8 +1264,8 @@ other than(0.0,1.0) - this function will throw exception.
   -- ALGLIB --
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
-func MlpSetOutputScaling(network *Multilayerperceptron, i int, mean, sigma *float64) error {
-	if !(i >= 0 & i < network.HlLayerSizes[len(network.HlLayerSizes) - 1]) {
+func MlpSetOutputScaling(network *Multilayerperceptron, i int, mean, sigma float64) error {
+	if !(i >= 0 && i < network.HlLayerSizes[len(network.HlLayerSizes) - 1]) {
 		return fmt.Errorf("MLPSetOutputScaling: incorrect (nonexistent) I")
 	}
 	if !(isfinite(mean)) {
@@ -1279,15 +1276,15 @@ func MlpSetOutputScaling(network *Multilayerperceptron, i int, mean, sigma *floa
 	}
 
 	if network.StructInfo[6] == 1 {
-		if !(mean == .0) {
+		if !(mean == 0) {
 			return fmt.Errorf("MLPSetOutputScaling: you can not set non-zero Mean term for classifier network")
 		}
-		if !(sigma == 1.) {
+		if !(sigma == 1) {
 			return fmt.Errorf("MLPSetOutputScaling: you can not set non-unit Sigma term for classifier network")
 		}
 	}else {
 		if sigma == 0 {
-			sigma = 1.
+			sigma = 1
 		}
 		network.ColumnMeans[network.HlLayerSizes[0] + i] = mean
 		network.ColumnSigmas[network.HlLayerSizes[0] + i] = sigma
@@ -1389,7 +1386,7 @@ This function:
   -- ALGLIB --
 	 Copyright 25.03.2011 by Bochkanov Sergey
 *************************************************************************/
-func MlpSetWeight(network *Multilayerperceptron, k0, i0, k1, i1 int, w float64) {
+func MlpSetWeight(network *Multilayerperceptron, k0, i0, k1, i1 int, w float64) error {
 	highlevelidx := 0
 
 	ccnt := len(network.HlConnections) / hlconnfieldwidth
@@ -1397,16 +1394,16 @@ func MlpSetWeight(network *Multilayerperceptron, k0, i0, k1, i1 int, w float64) 
 	//
 	// check params
 	//
-	if !(k0 >= 0 & k0 < len(network.HlLayerSizes)) {
+	if !(k0 >= 0 && k0 < len(network.HlLayerSizes)) {
 		return fmt.Errorf("MLPSetWeight: incorrect (nonexistent) K0")
 	}
-	if !(i0 >= 0 & i0 < network.HlLayerSizes[k0]) {
+	if !(i0 >= 0 && i0 < network.HlLayerSizes[k0]) {
 		return fmt.Errorf("MLPSetWeight: incorrect (nonexistent) I0")
 	}
-	if !(k1 >= 0 & k1 < len(network.HlLayerSizes)) {
+	if !(k1 >= 0 && k1 < len(network.HlLayerSizes)) {
 		return fmt.Errorf("MLPSetWeight: incorrect (nonexistent) K1")
 	}
-	if !(i1 >= 0 & i1 < network.HlLayerSizes[k1]) {
+	if !(i1 >= 0 && i1 < network.HlLayerSizes[k1]) {
 		return fmt.Errorf("MLPSetWeight: incorrect (nonexistent) I1")
 	}
 	if !(isfinite(w)) {
@@ -1452,14 +1449,14 @@ func MlpActivationFunction(net float64, k int, f, df, d2f *float64) {
 	var root float64 = 0
 	var r float64 = 0
 
-	f = 0
-	df = 0
-	d2f = 0
+	*f = 0
+	*df = 0
+	*d2f = 0
 
-	if k == 0 | k == -5 {
-		f = net
-		df = 1
-		d2f = 0
+	if k == 0 || k == -5 {
+		*f = net
+		*df = 1
+		*d2f = 0
 		return
 	}
 	if k == 1 {
@@ -1467,12 +1464,12 @@ func MlpActivationFunction(net float64, k int, f, df, d2f *float64) {
 		// TanH activation function
 		//
 		if math.Abs(net) < 100.0 {
-			f = math.Tanh(net)
+			*f = math.Tanh(net)
 		}else {
-			f = sign(net)
+			*f = float64(sign(net))
 		}
-		df = 1 - (f * f)
-		d2f = -(2 * f * df)
+		*df = 1 - (*f * *f)
+		*d2f = -(2 * *f * *df)
 		return
 	}
 	if k == 3 {
@@ -1483,26 +1480,26 @@ func MlpActivationFunction(net float64, k int, f, df, d2f *float64) {
 			net2 = net * net
 			arg = net2 + 1
 			root = math.Sqrt(arg)
-			f = net + root
+			*f = net + root
 			r = net / root
-			df = 1 + r
-			d2f = (root - net * r) / arg
+			*df = 1 + r
+			*d2f = (root - net * r) / arg
 		}else {
-			f = math.Exp(net)
-			df = f
-			d2f = f
+			*f = math.Exp(net)
+			*df = *f
+			*d2f = *f
 		}
 		return
 	}
 	if k == 2 {
-		f = math.Exp(-(net * net))
-		df = -(2 * net * f)
-		d2f = -(2 * (f + df * net))
+		*f = math.Exp(-(net * net))
+		*df = -(2 * net * *f)
+		*d2f = -(2 * (*f + *df * net))
 		return
 	}
-	f = 0
-	df = 0
-	d2f = 0
+	*f = 0
+	*df = 0
+	*d2f = 0
 }
 
 /*************************************************************************
@@ -1522,10 +1519,10 @@ See also MLPProcessI
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpProcess(network *Multilayerperceptron, x, y *[]float64) {
-	if len(y) < network.StructInfo[2] {
-		y = [network.StructInfo[2]]float64
+	if len(*y) < network.StructInfo[2] {
+		*y = make([]float64, network.StructInfo[2])
 	}
-	MlpInternalProcessVector(&network.StructInfo, &network.Weights, &network.ColumnMeans, &network.ColumnSigmas, &network.Neurons, &network.DfdNet, x, &y)
+	MlpInternalProcessVector(&network.StructInfo, &network.Weights, &network.ColumnMeans, &network.ColumnSigmas, &network.Neurons, &network.DfdNet, x, y)
 }
 
 /*************************************************************************
@@ -1541,7 +1538,7 @@ when you call it from command line.
 	 Copyright 21.09.2010 by Bochkanov Sergey
 *************************************************************************/
 func MlpProcessi(network *Multilayerperceptron, x, y *[]float64) {
-	y = [0]float64
+	*y = make([]float64, 0)
 	MlpProcess(network, x, y)
 }
 
@@ -1561,15 +1558,15 @@ func MlpError(network *Multilayerperceptron, xy *[][]float64, ssize int) float64
 	var result float64 = 0.0
 	for i := 0; i <= ssize - 1; i++ {
 		for j := 0; j <= nin - 1; j++ {
-			network.X[j] = xy[i][j]
+			network.X[j] = (*xy)[i][j]
 		}
 		MlpProcess(network, &network.X, &network.Y);
 		if MlpIsSoftMax(network) {
 			//
 			// class labels outputs
 			//
-			k := int(round(xy[i][nin]))
-			if k >= 0 & k < nout {
+			k := int(round((*xy)[i][nin]))
+			if k >= 0 && k < nout {
 				network.Y[k] = network.Y[k] - 1
 			}
 		}else {
@@ -1577,7 +1574,7 @@ func MlpError(network *Multilayerperceptron, xy *[][]float64, ssize int) float64
 			// real outputs
 			//
 			for j := 0; j <= nout - 1; j++ {
-				network.Y[j] = network.Y[j] - xy[i][ j + nin]
+				network.Y[j] = network.Y[j] - (*xy)[i][ j + nin]
 			}
 		}
 		e = 0.0
@@ -1608,7 +1605,7 @@ func MlpErrorN(network *Multilayerperceptron, xy *[][]float64, ssize int) float6
 		// Process vector
 		//
 		for j := 0; j <= nin - 1; j++ {
-			network.X[j] = xy[i][j]
+			network.X[j] = (*xy)[i][j]
 		}
 		MlpProcess(network, &network.X, &network.Y)
 
@@ -1620,7 +1617,7 @@ func MlpErrorN(network *Multilayerperceptron, xy *[][]float64, ssize int) float6
 			// Least squares error function
 			//
 			for j := 0; j <= nout - 1; j++ {
-				network.Y[j] = network.Y[j] - xy[i][ j + nin]
+				network.Y[j] = network.Y[j] - (*xy)[i][ j + nin]
 			}
 			e := 0.0
 			for j := 0; j <= nout - 1; j++ {
@@ -1631,8 +1628,8 @@ func MlpErrorN(network *Multilayerperceptron, xy *[][]float64, ssize int) float6
 			//
 			// Cross-entropy error function
 			//
-			k = int(round(xy[i][nin]))
-			if k >= 0 & k < nout {
+			k = int(round((*xy)[i][nin]))
+			if k >= 0 && k < nout {
 				result = result + safecrossentropy(1, network.Y[k])
 			}
 		}
@@ -1655,15 +1652,15 @@ func MlpClsError(network *Multilayerperceptron, xy *[][]float64, ssize int) int 
 	nmax := 0
 
 	MlpProperties(network, &nin, &nout, &wcount)
-	workx := [nin - 1 + 1]float64
-	worky := [nout - 1 + 1]float64
+	workx := make([]float64, nin - 1 + 1)
+	worky := make([]float64, nout - 1 + 1)
 	result := 0
 	for i := 0; i <= ssize - 1; i++ {
 		//
 		// Process
 		//
 		for j := 0; j <= nin - 1; j++ {
-			workx[j] = xy[i][j]
+			workx[j] = (*xy)[i][j]
 		}
 		MlpProcess(network, &workx, &worky)
 
@@ -1682,11 +1679,11 @@ func MlpClsError(network *Multilayerperceptron, xy *[][]float64, ssize int) int 
 		// Right answer
 		//
 		if MlpIsSoftMax(network) {
-			ns = int(round(xy[i][nin]))
+			ns = int(round((*xy)[i][nin]))
 		}else {
 			nmax = 0
 			for j := 0; j <= nout - 1; j++ {
-				if xy[i][nin + j] > xy[i][nin + nmax] {
+				if (*xy)[i][nin + j] > (*xy)[i][nin + nmax] {
 					nmax = j
 				}
 			}
@@ -1720,7 +1717,7 @@ RESULT:
 	 Copyright 25.12.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpRelClsError(network *Multilayerperceptron, xy *[][]float64, npoints int) float64 {
-	return MlpClsError(network, xy, npoints) / float64(npoints)
+	return float64(MlpClsError(network, xy, npoints)) / float64(npoints)
 }
 
 /*************************************************************************
@@ -1746,7 +1743,7 @@ func MlpAvgce(network *Multilayerperceptron, xy *[][]float64, npoints int) float
 
 	if MlpIsSoftMax(network) {
 		MlpProperties(network, &nin, &nout, &wcount)
-		result = MlpErrorN(network, xy, npoints) / (npoints * math.Log(2))
+		result = MlpErrorN(network, xy, npoints) / (float64(npoints) * math.Log(2))
 	}else {
 		result = 0
 	}
@@ -1776,7 +1773,7 @@ func MlpRmsError(network *Multilayerperceptron, xy *[][]float64, npoints int) fl
 	wcount := 0
 
 	MlpProperties(network, &nin, &nout, &wcount)
-	return math.Sqrt(2 * MlpError(network, xy, npoints) / (npoints * nout))
+	return math.Sqrt(2 * MlpError(network, xy, npoints) / float64(npoints * nout))
 }
 
 /*************************************************************************
@@ -1804,14 +1801,14 @@ func MlpAvgError(network *Multilayerperceptron, xy *[][]float64, npoints int) fl
 	result := 0.0
 	for i := 0; i <= npoints - 1; i++ {
 		for j := 0; j <= nin - 1; j++ {
-			network.X[j] = xy[i][j]
+			network.X[j] = (*xy)[i][j]
 		}
 		MlpProcess(network, &network.X, &network.Y)
 		if MlpIsSoftMax(network) {
 			//
 			// class labels
 			//
-			k := int(round(xy[i][nin]))
+			k := int(round((*xy)[i][nin]))
 			for j := 0; j <= nout - 1; j++ {
 				if j == k {
 					result = result + math.Abs(1 - network.Y[j])
@@ -1824,11 +1821,11 @@ func MlpAvgError(network *Multilayerperceptron, xy *[][]float64, npoints int) fl
 			// real outputs
 			//
 			for j := 0; j <= nout - 1; j++ {
-				result = result + math.Abs(xy[i][nin + j] - network.Y[j])
+				result = result + math.Abs((*xy)[i][nin + j] - network.Y[j])
 			}
 		}
 	}
-	result = result / (npoints * nout)
+	result = result / float64(npoints * nout)
 	return result
 }
 
@@ -1858,14 +1855,14 @@ func MlpAvgRelError(network *Multilayerperceptron, xy *[][]float64, npoints int)
 	k := 0
 	for i := 0; i <= npoints - 1; i++ {
 		for j := 0; j <= nin - 1; j++ {
-			network.X[j] = xy[i][j]
+			network.X[j] = (*xy)[i][j]
 		}
 		MlpProcess(network, &network.X, &network.Y)
 		if MlpIsSoftMax(network) {
 			//
 			// class labels
 			//
-			lk := int(round(xy[i][nin]))
+			lk := int(round((*xy)[i][nin]))
 			for j := 0; j <= nout - 1; j++ {
 				if j == lk {
 					result = result + math.Abs(1 - network.Y[j])
@@ -1877,15 +1874,15 @@ func MlpAvgRelError(network *Multilayerperceptron, xy *[][]float64, npoints int)
 			// real outputs
 			//
 			for j := 0; j <= nout - 1; j++ {
-				if xy[i][nin + j] != 0 {
-					result = result + math.Abs(xy[i][nin + j] - network.Y[j]) / math.Abs(xy[i][nin + j])
-					k = k + 1
+				if (*xy)[i][nin + j] != 0 {
+					result = result + math.Abs((*xy)[i][nin + j] - network.Y[j]) / math.Abs((*xy)[i][nin + j])
+					k += 1
 				}
 			}
 		}
 	}
 	if k != 0 {
-		result = result / k
+		result /= float64(k)
 	}
 	return result
 }
@@ -1913,8 +1910,8 @@ func MlpGrad(network *Multilayerperceptron, x, desiredy *[]float64, e *float64, 
 	//
 	// Alloc
 	//
-	if len(grad) < network.StructInfo[4] {
-		grad = [network.StructInfo[4]]float64
+	if len(*grad) < network.StructInfo[4] {
+		*grad = make([]float64, network.StructInfo[4])
 	}
 
 	//
@@ -1923,20 +1920,20 @@ func MlpGrad(network *Multilayerperceptron, x, desiredy *[]float64, e *float64, 
 	MlpProcess(network, x, &network.Y)
 	nout := network.StructInfo[2]
 	ntotal := network.StructInfo[3]
-	e = 0.0
+	*e = 0
 	for i := 0; i <= ntotal - 1; i++ {
 		network.DError[i] = 0
 	}
 	for i := 0; i <= nout - 1; i++ {
-		network.DError[ntotal - nout + i] = network.Y[i] - desiredy[i]
-		n := network.Y[i] - desiredy[i]
-		e += (n * n) / 2
+		network.DError[ntotal - nout + i] = network.Y[i] - (*desiredy)[i]
+		n := network.Y[i] - (*desiredy)[i]
+		*e += (n * n) / 2
 	}
 
 	//
 	// gradient
 	//
-	return mlpinternalcalculategradient(network, &network.Neurons, &network.Weights, &network.DError, &grad, false)
+	return mlpinternalcalculategradient(network, &network.Neurons, &network.Weights, &network.DError, grad, false)
 }
 
 /*************************************************************************
@@ -1964,33 +1961,33 @@ func MlpGradn(network *Multilayerperceptron, x, desiredy *[]float64, e *float64,
 	nout := 0
 	ntotal := 0
 
-	e = 0.0
+	*e = 0
 
 	//
 	// Alloc
 	//
-	if len(grad) < network.StructInfo[4] {
-		grad = [network.StructInfo[4]]float64
+	if len(*grad) < network.StructInfo[4] {
+		*grad = make([]float64, network.StructInfo[4])
 	}
 
 	//
 	// Prepare dError/dOut, internal structures
 	//
-	MlpProcess(network, &x, &network.Y)
+	MlpProcess(network, x, &network.Y)
 	nout = network.StructInfo[2]
 	ntotal = network.StructInfo[3]
 	for i := 0; i <= ntotal - 1; i++ {
 		network.DError[i] = 0
 	}
-	e = 0.0
+	*e = 0
 	if network.StructInfo[6] == 0 {
 		//
 		// Regression network, least squares
 		//
 		for i := 0; i <= nout - 1; i++ {
-			network.DError[ntotal - nout + i] = network.Y[i] - desiredy[i]
-			n := network.Y[i] - desiredy[i]
-			e += (n * n) / 2;
+			network.DError[ntotal - nout + i] = network.Y[i] - (*desiredy)[i]
+			n := network.Y[i] - (*desiredy)[i]
+			*e += (n * n) / 2;
 		}
 	}else {
 		//
@@ -1998,18 +1995,18 @@ func MlpGradn(network *Multilayerperceptron, x, desiredy *[]float64, e *float64,
 		//
 		s = 0
 		for i := 0; i <= nout - 1; i++ {
-			s += desiredy[i]
+			s += (*desiredy)[i]
 		}
 		for i := 0; i <= nout - 1; i++ {
-			network.DError[ntotal - nout + i] = s * network.Y[i] - desiredy[i]
-			e += safecrossentropy(desiredy[i], network.Y[i])
+			network.DError[ntotal - nout + i] = s * network.Y[i] - (*desiredy)[i]
+			*e += safecrossentropy((*desiredy)[i], network.Y[i])
 		}
 	}
 
 	//
 	// gradient
 	//
-	return mlpinternalcalculategradient(network, &network.Neurons, &network.Weights, &network.DError, &grad, true)
+	return mlpinternalcalculategradient(network, &network.Neurons, &network.Weights, &network.DError, grad, true)
 }
 
 /*************************************************************************
@@ -2040,12 +2037,12 @@ func MlpGradBatch(network *Multilayerperceptron, xy *[][]float64, ssize int, e *
 
 	MlpProperties(network, &nin, &nout, &wcount)
 	for i := 0; i <= wcount - 1; i++ {
-		grad[i] = 0
+		(*grad)[i] = 0
 	}
-	e = 0.0
+	*e = 0.0
 
 	for i := 0; i <= ssize - 1; i += chunksize {
-		if err := mlpchunkedgradient(network, xy, i, math.Min(ssize, i + chunksize) - i, &e, &grad, false); err != nil {
+		if err := mlpchunkedgradient(network, xy, i, minInt(ssize, i + chunksize) - i, e, grad, false); err != nil {
 			return err
 		}
 	}
@@ -2076,24 +2073,23 @@ OUTPUT PARAMETERS:
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpGradNBatch(network *Multilayerperceptron, xy *[][]float64, ssize int, e *float64, grad *[]float64) error {
-	i := 0
 	nin := 0
 	nout := 0
 	wcount := 0
 
-	e = 0.0
+	*e = 0
 
 	MlpProperties(network, &nin, &nout, &wcount)
 	for i := 0; i <= wcount - 1; i++ {
-		grad[i] = 0
+		(*grad)[i] = 0
 	}
-	e = 0.0
-	i = 0
+	*e = 0
+	i := 0
 	for i <= ssize - 1 {
-		if err := mlpchunkedgradient(network, xy, i, math.Min(ssize, i + chunksize) - i, e, grad, true); err != nil {
+		if err := mlpchunkedgradient(network, xy, i, minInt(ssize, i + chunksize) - i, e, grad, true); err != nil {
 			return err
 		}
-		i = i + chunksize
+		i += chunksize
 	}
 	return nil
 }
@@ -2111,7 +2107,7 @@ Internal subroutine.
 	 Neural Computation, 1994.
 *************************************************************************/
 func MlpHessianNBatch(network *Multilayerperceptron, xy *[][]float64, ssize int, e *float64, grad *[]float64, h *[][]float64) error {
-	e = 0.0
+	*e = 0
 	return mlphessianbatchinternal(network, xy, ssize, true, e, grad, h)
 }
 
@@ -2128,7 +2124,7 @@ Internal subroutine.
 	 Neural Computation, 1994.
 *************************************************************************/
 func MlpHessianBatch(network *Multilayerperceptron, xy *[][]float64, ssize int, e *float64, grad *[]float64, h *[][]float64) error {
-	e = 0.0
+	*e = 0
 	return mlphessianbatchinternal(network, xy, ssize, false, e, grad, h)
 }
 
@@ -2139,19 +2135,19 @@ func MlpInternalProcessVector(structinfo *[]int, weights, columnmeans, columnsig
 	//
 	// Read network geometry
 	//
-	nin := structinfo[1]
-	nout := structinfo[2]
-	ntotal := structinfo[3]
-	istart := structinfo[5]
+	nin := (*structinfo)[1]
+	nout := (*structinfo)[2]
+	ntotal := (*structinfo)[3]
+	istart := (*structinfo)[5]
 
 	//
 	// Inputs standartisation and putting in the network
 	//
 	for i := 0; i <= nin - 1; i++ {
-		if columnsigmas[i] != 0 {
-			neurons[i] = (x[i] - columnmeans[i]) / columnsigmas[i]
+		if (*columnsigmas)[i] != 0 {
+			(*neurons)[i] = ((*x)[i] - (*columnmeans)[i]) / (*columnsigmas)[i]
 		}else {
-			neurons[i] = x[i] - columnmeans[i]
+			(*neurons)[i] = (*x)[i] - (*columnmeans)[i]
 		}
 	}
 
@@ -2160,55 +2156,55 @@ func MlpInternalProcessVector(structinfo *[]int, weights, columnmeans, columnsig
 	//
 	for i := 0; i <= ntotal - 1; i++ {
 		offs := istart + i * nfieldwidth
-		if structinfo[offs + 0] > 0 | structinfo[offs + 0] == -5 {
+		if (*structinfo)[offs + 0] > 0 || (*structinfo)[offs + 0] == -5 {
 			//
 			// Activation function
 			//
 			var f float64 = 0
 			var df float64 = 0
 			var d2f float64 = 0
-			MlpActivationFunction(neurons[structinfo[offs + 2]], structinfo[offs + 0], &f, &df, &d2f)
-			neurons[i] = f
-			dfdnet[i] = df
+			MlpActivationFunction((*neurons)[(*structinfo)[offs + 2]], (*structinfo)[offs + 0], &f, &df, &d2f)
+			(*neurons)[i] = f
+			(*dfdnet)[i] = df
 			continue
 		}
-		if structinfo[offs + 0] == 0 {
+		if (*structinfo)[offs + 0] == 0 {
 			//
 			// Adaptive summator
 			//
-			n1 := structinfo[offs + 2]
+			n1 := (*structinfo)[offs + 2]
 			// n2 := n1 + structinfo[offs + 1] - 1
-			w1 := structinfo[offs + 3]
-			w2 := w1 + structinfo[offs + 1] - 1
+			w1 := (*structinfo)[offs + 3]
+			w2 := w1 + (*structinfo)[offs + 1] - 1
 			l := n1 - w1
 			net := 0.0
 			for j := w1; j <= w2; j++ {
-				net += weights[j] * neurons[j + l]
+				net += (*weights)[j] * (*neurons)[j + l]
 			}
-			neurons[i] = net
-			dfdnet[i] = 1.0
+			(*neurons)[i] = net
+			(*dfdnet)[i] = 1.0
 			continue
 		}
-		if structinfo[offs + 0] < 0 {
+		if (*structinfo)[offs + 0] < 0 {
 			perr := true
-			if structinfo[offs + 0] == -2 {
+			if (*structinfo)[offs + 0] == -2 {
 				//
 				// input neuron, left unchanged
 				//
 				perr = false
 			}
-			if structinfo[offs + 0] == -3 {
+			if (*structinfo)[offs + 0] == -3 {
 				//
 				// "-1" neuron
 				//
-				neurons[i] = -1
+				(*neurons)[i] = -1
 				perr = false
 			}
-			if structinfo[offs + 0] == -4 {
+			if (*structinfo)[offs + 0] == -4 {
 				//
 				// "0" neuron
 				//
-				neurons[i] = 0
+				(*neurons)[i] = 0
 				perr = false
 			}
 			if perr {
@@ -2223,37 +2219,37 @@ func MlpInternalProcessVector(structinfo *[]int, weights, columnmeans, columnsig
 	//
 	l := (ntotal - nout) - (0)
 	for j := 0; j <= nout - 1; j++ {
-		y[j] = neurons[j + l]
+		(*y)[j] = (*neurons)[j + l]
 	}
 
 	//
 	// Softmax post-processing or standardisation if needed
 	//
-	if !(structinfo[6] == 0 | structinfo[6] == 1) {
+	if !((*structinfo)[6] == 0 || (*structinfo)[6] == 1) {
 		return fmt.Errorf("MLPInternalProcessVector: unknown normalization type!")
 	}
-	if structinfo[6] == 1 {
+	if (*structinfo)[6] == 1 {
 		//
 		// Softmax
 		//
-		mx := y[0]
+		mx := (*y)[0]
 		for i := 1; i <= nout - 1; i++ {
-			mx = math.Max(mx, y[i])
+			mx = math.Max(mx, (*y)[i])
 		}
 		net := 0.0
 		for i := 0; i <= nout - 1; i++ {
-			y[i] = math.Exp(y[i] - mx)
-			net = net + y[i]
+			(*y)[i] = math.Exp((*y)[i] - mx)
+			net += (*y)[i]
 		}
 		for i := 0; i <= nout - 1; i++ {
-			y[i] = y[i] / net
+			(*y)[i] /= net
 		}
 	}else {
 		//
 		// Standardisation
 		//
 		for i := 0; i <= nout - 1; i++ {
-			y[i] = y[i] * columnsigmas[nin + i] + columnmeans[nin + i]
+			(*y)[i] = (*y)[i] * (*columnsigmas)[nin + i] + (*columnmeans)[nin + i]
 		}
 	}
 	return nil
@@ -2263,40 +2259,40 @@ func MlpInternalProcessVector(structinfo *[]int, weights, columnmeans, columnsig
 Internal subroutine: adding new input layer to network
 *************************************************************************/
 func addinputlayer(ncount int, lsizes, ltypes, lconnfirst, lconnlast *[]int, lastproc *int) {
-	lsizes[0] = ncount
-	ltypes[0] = -2
-	lconnfirst[0] = 0
-	lconnlast[0] = 0
-	lastproc = 0
+	(*lsizes)[0] = ncount
+	(*ltypes)[0] = -2
+	(*lconnfirst)[0] = 0
+	(*lconnlast)[0] = 0
+	*lastproc = 0
 }
 
 /*************************************************************************
 Internal subroutine: adding new summator layer to network
 *************************************************************************/
 func addbiasedsummatorlayer(ncount int, lsizes, ltypes, lconnfirst, lconnlast *[]int, lastproc *int) {
-	lsizes[lastproc + 1] = 1
-	ltypes[lastproc + 1] = -3
-	lconnfirst[lastproc + 1] = 0
-	lconnlast[lastproc + 1] = 0
-	lsizes[lastproc + 2] = ncount
-	ltypes[lastproc + 2] = 0
-	lconnfirst[lastproc + 2] = lastproc
-	lconnlast[lastproc + 2] = lastproc + 1
-	lastproc = lastproc + 2
+	(*lsizes)[*lastproc + 1] = 1
+	(*ltypes)[*lastproc + 1] = -3
+	(*lconnfirst)[*lastproc + 1] = 0
+	(*lconnlast)[*lastproc + 1] = 0
+	(*lsizes)[*lastproc + 2] = ncount
+	(*ltypes)[*lastproc + 2] = 0
+	(*lconnfirst)[*lastproc + 2] = *lastproc
+	(*lconnlast)[*lastproc + 2] = *lastproc + 1
+	*lastproc = *lastproc + 2
 }
 
 /*************************************************************************
 Internal subroutine: adding new summator layer to network
 *************************************************************************/
-func addactivationlayer(functype int, lsizes, ltypes, lconnfirst, lconnlast *[]int, lastproc int) error {
+func addactivationlayer(functype int, lsizes, ltypes, lconnfirst, lconnlast *[]int, lastproc *int) error {
 	if functype <= 0 && functype != -5 {
 		return fmt.Errorf("AddActivationLayer: incorrect function type %d", functype)
 	}
-	lsizes[lastproc + 1] = lsizes[lastproc]
-	ltypes[lastproc + 1] = functype
-	lconnfirst[lastproc + 1] = lastproc
-	lconnlast[lastproc + 1] = lastproc
-	lastproc = lastproc + 1
+	(*lsizes)[*lastproc + 1] = (*lsizes)[*lastproc]
+	(*ltypes)[*lastproc + 1] = functype
+	(*lconnfirst)[*lastproc + 1] = *lastproc
+	(*lconnlast)[*lastproc + 1] = *lastproc
+	*lastproc = *lastproc + 1
 	return nil
 }
 
@@ -2304,11 +2300,11 @@ func addactivationlayer(functype int, lsizes, ltypes, lconnfirst, lconnlast *[]i
 Internal subroutine: adding new zero layer to network
 *************************************************************************/
 func addzerolayer(lsizes, ltypes, lconnfirst, lconnlast *[]int, lastproc *int) {
-	lsizes[lastproc + 1] = 1
-	ltypes[lastproc + 1] = -4
-	lconnfirst[lastproc + 1] = 0
-	lconnlast[lastproc + 1] = 0
-	lastproc = lastproc + 1
+	(*lsizes)[*lastproc + 1] = 1
+	(*ltypes)[*lastproc + 1] = -4
+	(*lconnfirst)[*lastproc + 1] = 0
+	(*lconnlast)[*lastproc + 1] = 0
+	*lastproc += 1
 }
 
 /*************************************************************************
@@ -2326,21 +2322,21 @@ func mlpcreate(nin, nout int, lsizes, ltypes, lconnfirst, lconnlast *[]int, laye
 	//
 	// Check
 	//
-	if layerscount <= 0 {
+	if !(layerscount > 0) {
 		return fmt.Errorf("MLPCreate: wrong parameters! (layerscount %d)", layerscount)
 	}
-	if ltypes[0] != -2 {
+	if !((*ltypes)[0] == -2) {
 		return fmt.Errorf("MLPCreate: wrong LTypes[0] (must be -2)!")
 	}
 
 	for i := 0; i <= layerscount - 1; i++ {
-		if lsizes[i] <= 0 {
+		if (*lsizes)[i] <= 0 {
 			return fmt.Errorf("MLPCreate: wrong LSizes!")
 		}
-		if lconnfirst[i] < 0 || (lconnfirst[i] >= i && i != 0) {
+		if (*lconnfirst)[i] < 0 || ((*lconnfirst)[i] >= i && i != 0) {
 			return fmt.Errorf("MLPCreate: wrong LConnFirst!")
 		}
-		if lconnlast[i] < lconnfirst[i] || (lconnlast[i] >= i && i != 0) {
+		if (*lconnlast)[i] < (*lconnfirst)[i] || ((*lconnlast)[i] >= i && i != 0) {
 			return fmt.Errorf("MLPCreate: wrong LConnLast!")
 		}
 	}
@@ -2348,25 +2344,24 @@ func mlpcreate(nin, nout int, lsizes, ltypes, lconnfirst, lconnlast *[]int, laye
 	//
 	// Build network geometry
 	//
-	lnfirst := [layerscount - 1 + 1]int
-	lnsyn := [layerscount - 1 + 1]int
+	lnfirst := make([]int, layerscount - 1 + 1)
+	lnsyn := make([]int, layerscount - 1 + 1)
 	ntotal := 0
 	wcount := 0
 
 	for i := 0; i <= layerscount - 1; i++ {
-
 		//
 		// Analyze connections.
 		// This code must throw an assertion in case of unknown LTypes[I]
 		//
 		lnsyn[i] = -1;
-		if ltypes[i] >= 0 | ltypes[i] == -5 {
+		if (*ltypes)[i] >= 0 || (*ltypes)[i] == -5 {
 			lnsyn[i] = 0
-			for j := lconnfirst[i]; j <= lconnlast[i]; j++ {
-				lnsyn[i] = lnsyn[i] + lsizes[j]
+			for j := (*lconnfirst)[i]; j <= (*lconnlast)[i]; j++ {
+				lnsyn[i] = lnsyn[i] + (*lsizes)[j]
 			}
 		}else {
-			if (ltypes[i] == -2 | ltypes[i] == -3) | ltypes[i] == -4 {
+			if ((*ltypes)[i] == -2 || (*ltypes)[i] == -3) || (*ltypes)[i] == -4 {
 				lnsyn[i] = 0
 			}
 		}
@@ -2378,9 +2373,9 @@ func mlpcreate(nin, nout int, lsizes, ltypes, lconnfirst, lconnlast *[]int, laye
 		// Other info
 		//
 		lnfirst[i] = ntotal
-		ntotal = ntotal + lsizes[i]
-		if ltypes[i] == 0 {
-			wcount = wcount + lnsyn[i] * lsizes[i]
+		ntotal = ntotal + (*lsizes)[i]
+		if (*ltypes)[i] == 0 {
+			wcount = wcount + lnsyn[i] * (*lsizes)[i]
 		}
 	}
 	ssize = 7 + ntotal * nfieldwidth
@@ -2388,23 +2383,23 @@ func mlpcreate(nin, nout int, lsizes, ltypes, lconnfirst, lconnlast *[]int, laye
 	//
 	// Allocate
 	//
-	network.StructInfo = [ssize - 1 + 1]int
-	network.Weights = [wcount - 1 + 1]float64
+	network.StructInfo = make([]int, ssize - 1 + 1)
+	network.Weights = make([]float64, wcount - 1 + 1)
 	if isclsnet {
-		network.ColumnMeans = [nin - 1 + 1]float64
-		network.ColumnSigmas = [nin - 1 + 1]float64
+		network.ColumnMeans = make([]float64, nin - 1 + 1)
+		network.ColumnSigmas = make([]float64, nin - 1 + 1)
 	}else {
-		network.ColumnMeans = [nin + nout - 1 + 1]float64
-		network.ColumnSigmas = [nin + nout - 1 + 1]float64
+		network.ColumnMeans = make([]float64, nin + nout - 1 + 1)
+		network.ColumnSigmas = make([]float64, nin + nout - 1 + 1)
 	}
-	network.Neurons = [ntotal - 1 + 1]float64
-	network.Chunks = [3 * ntotal + 1][chunksize - 1 + 1]float64
-	network.NwBuf = [math.Max(wcount, 2 * nout) - 1 + 1]float64
-	network.IntegerBuf = [3 + 1]int
-	network.DfdNet = [ntotal - 1 + 1]float64
-	network.X = [nin - 1 + 1]float64
-	network.Y = [nout - 1 + 1]float64
-	network.DError = [ntotal - 1 + 1]float64
+	network.Neurons = make([]float64, ntotal - 1 + 1)
+	network.Chunks = makeEmptyFloat64Matrix(3 * ntotal + 1, chunksize - 1 + 1)
+	network.NwBuf = make([]float64, maxInt(wcount, 2 * nout) - 1 + 1)
+	network.IntegerBuf = make([]int, 3 + 1)
+	network.DfdNet = make([]float64, ntotal - 1 + 1)
+	network.X = make([]float64, nin - 1 + 1)
+	network.Y = make([]float64, nout - 1 + 1)
+	network.DError = make([]float64, ntotal - 1 + 1)
 
 	//
 	// Fill structure: global info
@@ -2427,33 +2422,33 @@ func mlpcreate(nin, nout int, lsizes, ltypes, lconnfirst, lconnlast *[]int, laye
 	nprocessed = 0
 	wallocated = 0
 	for i := 0; i <= layerscount - 1; i++ {
-		for j := 0; j <= lsizes[i] - 1; j++ {
+		for j := 0; j <= (*lsizes)[i] - 1; j++ {
 			offs = network.StructInfo[5] + nprocessed * nfieldwidth
-			network.StructInfo[offs + 0] = ltypes[i]
-			if ltypes[i] == 0 {
+			network.StructInfo[offs + 0] = (*ltypes)[i]
+			if (*ltypes)[i] == 0 {
 				//
 				// Adaptive summator:
 				// * connections with weights to previous neurons
 				//
 				network.StructInfo[offs + 1] = lnsyn[i]
-				network.StructInfo[offs + 2] = lnfirst[lconnfirst[i]]
+				network.StructInfo[offs + 2] = lnfirst[(*lconnfirst)[i]]
 				network.StructInfo[offs + 3] = wallocated
 				wallocated = wallocated + lnsyn[i]
 				nprocessed = nprocessed + 1
 			}
-			if ltypes[i] > 0 | ltypes[i] == -5 {
+			if (*ltypes)[i] > 0 || (*ltypes)[i] == -5 {
 				//
 				// Activation layer:
 				// * each neuron connected to one (only one) of previous neurons.
 				// * no weights
 				//
 				network.StructInfo[offs + 1] = 1
-				network.StructInfo[offs + 2] = lnfirst[lconnfirst[i]] + j
+				network.StructInfo[offs + 2] = lnfirst[(*lconnfirst)[i]] + j
 				network.StructInfo[offs + 3] = -1
 				nprocessed = nprocessed + 1
 			}
-			if (ltypes[i] == -2 | ltypes[i] == -3) | ltypes[i] == -4 {
-				nprocessed = nprocessed + 1
+			if ((*ltypes)[i] == -2 || (*ltypes)[i] == -3) || (*ltypes)[i] == -4 {
+				nprocessed += 1
 			}
 		}
 	}
@@ -2516,8 +2511,8 @@ just expects that network has following structure:
   -- ALGLIB --
      Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
-func fillhighlevelinformation(network *Multilayerperceptron, nin, nhid1, nhid2, nout, iscls int, islinearout bool) {
-	if !((iscls & islinearout) | !iscls) {
+func fillhighlevelinformation(network *Multilayerperceptron, nin, nhid1, nhid2, nout int, iscls, islinearout bool) error {
+	if !((iscls && islinearout) || !iscls) {
 		return fmt.Errorf("FillHighLevelInformation: internal error")
 	}
 
@@ -2534,16 +2529,16 @@ func fillhighlevelinformation(network *Multilayerperceptron, nin, nhid1, nhid2, 
 	// network without hidden layers
 	//
 	if nhid1 == 0 {
-		network.HlLayerSizes = [2]int
+		network.HlLayerSizes = make([]int, 2)
 		network.HlLayerSizes[0] = nin
 		network.HlLayerSizes[1] = nout
 		if !iscls {
-			network.HlConnections = [hlconnfieldwidth * nin * nout]int
-			network.HlNeurons = [hlnfieldwidth * (nin + nout)]int
+			network.HlConnections = make([]int, hlconnfieldwidth * nin * nout)
+			network.HlNeurons = make([]int, hlnfieldwidth * (nin + nout))
 			network.hlnormtype = 0
 		}else {
-			network.HlConnections = [hlconnfieldwidth * nin * (nout - 1)]int
-			network.HlNeurons = [hlnfieldwidth * (nin + nout)]int
+			network.HlConnections = make([]int, hlconnfieldwidth * nin * (nout - 1))
+			network.HlNeurons = make([]int, hlnfieldwidth * (nin + nout))
 			network.hlnormtype = 1
 		}
 		hladdinputlayer(network, &idxconn, &idxneuro, &idxstruct, nin)
@@ -2554,17 +2549,17 @@ func fillhighlevelinformation(network *Multilayerperceptron, nin, nhid1, nhid2, 
 	// network with one hidden layers
 	//
 	if nhid2 == 0 {
-		network.HlLayerSizes = [3]int
+		network.HlLayerSizes = make([]int, 3)
 		network.HlLayerSizes[0] = nin
 		network.HlLayerSizes[1] = nhid1
 		network.HlLayerSizes[2] = nout
 		if !iscls {
-			network.HlConnections = [hlconnfieldwidth * (nin * nhid1 + nhid1 * nout)]int
-			network.HlNeurons = [hlnfieldwidth * (nin + nhid1 + nout)]int
+			network.HlConnections = make([]int, hlconnfieldwidth * (nin * nhid1 + nhid1 * nout))
+			network.HlNeurons = make([]int, hlnfieldwidth * (nin + nhid1 + nout))
 			network.hlnormtype = 0
 		}else {
-			network.HlConnections = [hlconnfieldwidth * (nin * nhid1 + nhid1 * (nout - 1))]int
-			network.HlNeurons = [hlnfieldwidth * (nin + nhid1 + nout)]int
+			network.HlConnections = make([]int, hlconnfieldwidth * (nin * nhid1 + nhid1 * (nout - 1)))
+			network.HlNeurons = make([]int, hlnfieldwidth * (nin + nhid1 + nout))
 			network.hlnormtype = 1
 		}
 		hladdinputlayer(network, &idxconn, &idxneuro, &idxstruct, nin)
@@ -2575,18 +2570,18 @@ func fillhighlevelinformation(network *Multilayerperceptron, nin, nhid1, nhid2, 
 	//
 	// Two hidden layers
 	//
-	network.HlLayerSizes = [4]int
+	network.HlLayerSizes = make([]int, 4)
 	network.HlLayerSizes[0] = nin
 	network.HlLayerSizes[1] = nhid1
 	network.HlLayerSizes[2] = nhid2
 	network.HlLayerSizes[3] = nout
 	if !iscls {
-		network.HlConnections = [hlconnfieldwidth * (nin * nhid1 + nhid1 * nhid2 + nhid2 * nout)]int
-		network.HlNeurons = [hlnfieldwidth * (nin + nhid1 + nhid2 + nout)]int
+		network.HlConnections = make([]int, hlconnfieldwidth * (nin * nhid1 + nhid1 * nhid2 + nhid2 * nout))
+		network.HlNeurons = make([]int, hlnfieldwidth * (nin + nhid1 + nhid2 + nout))
 		network.hlnormtype = 0
 	}else {
-		network.HlConnections = [hlconnfieldwidth * (nin * nhid1 + nhid1 * nhid2 + nhid2 * (nout - 1))]int
-		network.HlNeurons = [hlnfieldwidth * (nin + nhid1 + nhid2 + nout)]int
+		network.HlConnections = make([]int, hlconnfieldwidth * (nin * nhid1 + nhid1 * nhid2 + nhid2 * (nout - 1)))
+		network.HlNeurons = make([]int, hlnfieldwidth * (nin + nhid1 + nhid2 + nout))
 		network.hlnormtype = 1
 	}
 	hladdinputlayer(network, &idxconn, &idxneuro, &idxstruct, nin)
@@ -2611,17 +2606,17 @@ parameters:
 It modified Network and indices.
 *************************************************************************/
 func hladdinputlayer(network *Multilayerperceptron, connidx, neuroidx, structinfoidx *int, nin int) {
-	offs := hlnfieldwidth * neuroidx
+	offs := hlnfieldwidth * *neuroidx
 
 	for i := 0; i <= nin - 1; i++ {
 		network.HlNeurons[offs + 0] = 0
 		network.HlNeurons[offs + 1] = i
 		network.HlNeurons[offs + 2] = -1
 		network.HlNeurons[offs + 3] = -1
-		offs = offs + hlnfieldwidth
+		offs += hlnfieldwidth
 	}
-	neuroidx = neuroidx + nin
-	structinfoidx = structinfoidx + nin
+	*neuroidx += nin
+	*structinfoidx += nin
 }
 
 /*************************************************************************
@@ -2651,12 +2646,12 @@ func hladdoutputlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 	neurooffs := 0
 	connoffs := 0
 
-	if !((iscls & islinearout) | !iscls) {
+	if !((iscls && islinearout) || !iscls) {
 		return fmt.Errorf("HLAddOutputLayer: internal error")
 	}
 
-	neurooffs = hlnfieldwidth * neuroidx
-	connoffs = hlconnfieldwidth * connidx
+	neurooffs = hlnfieldwidth * *neuroidx
+	connoffs = hlconnfieldwidth * *connidx
 	if !iscls {
 
 		//
@@ -2665,9 +2660,9 @@ func hladdoutputlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 		for i = 0; i <= nout - 1; i++ {
 			network.HlNeurons[neurooffs + 0] = k
 			network.HlNeurons[neurooffs + 1] = i
-			network.HlNeurons[neurooffs + 2] = structinfoidx + 1 + nout + i
-			network.HlNeurons[neurooffs + 3] = weightsidx + nprev + (nprev + 1) * i
-			neurooffs = neurooffs + hlnfieldwidth
+			network.HlNeurons[neurooffs + 2] = *structinfoidx + 1 + nout + i
+			network.HlNeurons[neurooffs + 3] = *weightsidx + nprev + (nprev + 1) * i
+			neurooffs += hlnfieldwidth
 		}
 		for i := 0; i <= nprev - 1; i++ {
 			for j := 0; j <= nout - 1; j++ {
@@ -2675,14 +2670,14 @@ func hladdoutputlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 				network.HlConnections[connoffs + 1] = i
 				network.HlConnections[connoffs + 2] = k
 				network.HlConnections[connoffs + 3] = j
-				network.HlConnections[connoffs + 4] = weightsidx + i + j * (nprev + 1)
-				connoffs = connoffs + hlconnfieldwidth
+				network.HlConnections[connoffs + 4] = *weightsidx + i + j * (nprev + 1)
+				connoffs += hlconnfieldwidth
 			}
 		}
-		connidx = connidx + nprev * nout
-		neuroidx = neuroidx + nout
-		structinfoidx = structinfoidx + 2 * nout + 1
-		weightsidx = weightsidx + nout * (nprev + 1)
+		*connidx += (nprev * nout)
+		*neuroidx += nout
+		*structinfoidx = *structinfoidx + 2 * nout + 1
+		*weightsidx = *weightsidx + nout * (nprev + 1)
 	}else {
 		//
 		// Classification network
@@ -2691,7 +2686,7 @@ func hladdoutputlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 			network.HlNeurons[neurooffs + 0] = k
 			network.HlNeurons[neurooffs + 1] = i
 			network.HlNeurons[neurooffs + 2] = -1
-			network.HlNeurons[neurooffs + 3] = weightsidx + nprev + (nprev + 1) * i
+			network.HlNeurons[neurooffs + 3] = *weightsidx + nprev + (nprev + 1) * i
 			neurooffs = neurooffs + hlnfieldwidth
 		}
 		network.HlNeurons[neurooffs + 0] = k
@@ -2704,14 +2699,14 @@ func hladdoutputlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 				network.HlConnections[connoffs + 1] = i
 				network.HlConnections[connoffs + 2] = k
 				network.HlConnections[connoffs + 3] = j
-				network.HlConnections[connoffs + 4] = weightsidx + i + j * (nprev + 1)
-				connoffs = connoffs + hlconnfieldwidth
+				network.HlConnections[connoffs + 4] = *weightsidx + i + j * (nprev + 1)
+				connoffs += hlconnfieldwidth
 			}
 		}
-		connidx = connidx + nprev * (nout - 1)
-		neuroidx = neuroidx + nout
-		structinfoidx = structinfoidx + nout + 2
-		weightsidx = weightsidx + (nout - 1) * (nprev + 1)
+		*connidx = *connidx + nprev * (nout - 1)
+		*neuroidx += nout
+		*structinfoidx = *structinfoidx + nout + 2
+		*weightsidx = *weightsidx + (nout - 1) * (nprev + 1)
 	}
 	return nil
 }
@@ -2737,14 +2732,14 @@ parameters:
 It modified Network and ConnIdx/NeuroIdx/StructInfoIdx/WeightsIdx.
 *************************************************************************/
 func hladdhiddenlayer(network *Multilayerperceptron, connidx, neuroidx, structinfoidx, weightsidx *int, k, nprev, ncur int) {
-	neurooffs := hlnfieldwidth * neuroidx
-	connoffs := hlconnfieldwidth * connidx
+	neurooffs := hlnfieldwidth * *neuroidx
+	connoffs := hlconnfieldwidth * *connidx
 
 	for i := 0; i <= ncur - 1; i++ {
 		network.HlNeurons[neurooffs + 0] = k
 		network.HlNeurons[neurooffs + 1] = i
-		network.HlNeurons[neurooffs + 2] = structinfoidx + 1 + ncur + i
-		network.HlNeurons[neurooffs + 3] = weightsidx + nprev + (nprev + 1) * i
+		network.HlNeurons[neurooffs + 2] = *structinfoidx + 1 + ncur + i
+		network.HlNeurons[neurooffs + 3] = *weightsidx + nprev + (nprev + 1) * i
 		neurooffs = neurooffs + hlnfieldwidth
 	}
 	for i := 0; i <= nprev - 1; i++ {
@@ -2753,34 +2748,34 @@ func hladdhiddenlayer(network *Multilayerperceptron, connidx, neuroidx, structin
 			network.HlConnections[connoffs + 1] = i
 			network.HlConnections[connoffs + 2] = k
 			network.HlConnections[connoffs + 3] = j
-			network.HlConnections[connoffs + 4] = weightsidx + i + j * (nprev + 1)
+			network.HlConnections[connoffs + 4] = *weightsidx + i + j * (nprev + 1)
 			connoffs = connoffs + hlconnfieldwidth
 		}
 	}
-	connidx = connidx + nprev * ncur
-	neuroidx = neuroidx + ncur
-	structinfoidx = structinfoidx + 2 * ncur + 1
-	weightsidx = weightsidx + ncur * (nprev + 1)
+	*connidx = *connidx + nprev * ncur
+	*neuroidx += ncur
+	*structinfoidx = *structinfoidx + 2 * ncur + 1
+	*weightsidx = *weightsidx + ncur * (nprev + 1)
 }
 
-func copyIntArray(src []int) []int {
-	result := [len(src)]int
-	copy(result, src)
+func copyIntArray(src *[]int) []int {
+	result := make([]int, len(*src))
+	copy(result, *src)
 	return result
 }
 
-func copyFloat64Array(src []float64) []float64 {
-	result := [len(src)]float64
-	copy(result, src)
+func copyFloat64Array(src *[]float64) []float64 {
+	result := make([]float64, len(*src))
+	copy(result, *src)
 	return result
 }
 
-func copyFloat64Matrix(src [][]float64) [][]float64 {
-	l := len(src)
-	var result [l][...]float64
+func copyFloat64Matrix(src *[][]float64) [][]float64 {
+	l := len(*src)
+	result := make([][]float64, l)
 
 	for i := 0; i < l; i++ {
-		result[i] = copyFloat64Array(src[i])
+		result[i] = copyFloat64Array(&((*src)[i]))
 	}
 
 	return result
@@ -2832,11 +2827,11 @@ func recsearch(a *[]int, nrec, nheader, i0, i1 int, b *[]int) int {
 		offs = nrec * mididx
 		cflag = 0
 		for k := 0; k <= nheader - 1; k++ {
-			if a[offs + k] < b[k] {
+			if (*a)[offs + k] < (*b)[k] {
 				cflag = -1
 				break
 			}
-			if a[offs + k] > b[k] {
+			if (*a)[offs + k] > (*b)[k] {
 				cflag = 1
 				break
 			}
@@ -2879,7 +2874,7 @@ func safecrossentropy(t, z float64) float64 {
 			//
 			// Normal case
 			//
-			if z == 0 | math.Abs(t) >= maxrealnumber * math.Abs(z) {
+			if z == 0 || math.Abs(t) >= maxrealnumber * math.Abs(z) {
 				r = maxrealnumber
 			}else {
 				r = t / z}
@@ -2925,7 +2920,7 @@ func mlpinternalcalculategradient(network *Multilayerperceptron, neurons, weight
 	// Pre-processing of dError/dOut:
 	// from dError/dOut(normalized) to dError/dOut(non-normalized)
 	//
-	if !(network.StructInfo[6] == 0 | network.StructInfo[6] == 1) {
+	if !(network.StructInfo[6] == 0 || network.StructInfo[6] == 1) {
 		return fmt.Errorf("MLPInternalCalculateGradient: unknown normalization type!")
 	}
 	if network.StructInfo[6] == 1 {
@@ -2973,13 +2968,13 @@ func mlpinternalcalculategradient(network *Multilayerperceptron, neurons, weight
 		// Extract info
 		//
 		offs = istart + i * nfieldwidth
-		if network.StructInfo[offs + 0] > 0 | network.StructInfo[offs + 0] == -5 {
+		if network.StructInfo[offs + 0] > 0 || network.StructInfo[offs + 0] == -5 {
 			//
 			// Activation function
 			//
 			dedf = network.DError[i]
 			dfdnet = network.DfdNet[i]
-			derror[network.StructInfo[offs + 2]] = derror[network.StructInfo[offs + 2]] + dedf * dfdnet
+			(*derror)[network.StructInfo[offs + 2]] = (*derror)[network.StructInfo[offs + 2]] + dedf * dfdnet
 			continue
 		}
 		if network.StructInfo[offs + 0] == 0 {
@@ -2995,17 +2990,17 @@ func mlpinternalcalculategradient(network *Multilayerperceptron, neurons, weight
 			v = dedf * dfdnet
 			i1_ = (n1) - (w1)
 			for j := w1; j <= w2; j++ {
-				grad[j] = v * neurons[j + i1_]
+				(*grad)[j] = v * (*neurons)[j + i1_]
 			}
 			i1_ = (w1) - (n1)
 			for j := n1; j <= n2; j++ {
-				derror[j] = derror[j] + v * weights[j + i1_]
+				(*derror)[j] = (*derror)[j] + v * (*weights)[j + i1_]
 			}
 			continue
 		}
 		if network.StructInfo[offs + 0] < 0 {
 			bflag := false
-			if (network.StructInfo[offs + 0] == -2 | network.StructInfo[offs + 0] == -3) | network.StructInfo[offs + 0] == -4 {
+			if (network.StructInfo[offs + 0] == -2 || network.StructInfo[offs + 0] == -3) || network.StructInfo[offs + 0] == -4 {
 				//
 				// Special neuron type, no back-propagation required
 				//
@@ -3064,15 +3059,15 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 	for i := 0; i <= nin - 1; i++ {
 		for j := 0; j <= csize - 1; j++ {
 			if network.ColumnSigmas[i] != 0 {
-				network.Chunks[i][j] = (xy[c1 + j][i] - network.ColumnMeans[i]) / network.ColumnSigmas[i]
+				network.Chunks[i][j] = ((*xy)[c1 + j][i] - network.ColumnMeans[i]) / network.ColumnSigmas[i]
 			}else {
-				network.Chunks[i][j] = xy[c1 + j][i] - network.ColumnMeans[i]
+				network.Chunks[i][j] = (*xy)[c1 + j][i] - network.ColumnMeans[i]
 			}
 		}
 	}
 	for i := 0; i <= ntotal - 1; i++ {
 		offs = istart + i * nfieldwidth
-		if network.StructInfo[offs + 0] > 0 | network.StructInfo[offs + 0] == -5 {
+		if network.StructInfo[offs + 0] > 0 || network.StructInfo[offs + 0] == -5 {
 			//
 			// Activation function:
 			// * calculate F vector, F(i) = F(NET(i))
@@ -3149,7 +3144,7 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 			network.Chunks[iderror + i][ i_] = network.Chunks[izeros][ i_]
 		}
 	}
-	if !(network.StructInfo[6] == 0 | network.StructInfo[6] == 1) {
+	if !(network.StructInfo[6] == 0 || network.StructInfo[6] == 1) {
 		return fmt.Errorf("MLPChunkedGradient: unknown normalization type!")
 	}
 	if network.StructInfo[6] == 1 {
@@ -3184,30 +3179,30 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 				//
 				//
 				s = 1
-				kl = int(round(xy[cstart + k][ nin]))
+				kl = int(round((*xy)[cstart + k][ nin]))
 				for i := 0; i <= nout - 1; i++ {
 					if i == kl {
 						v = 1
-					}        else {
+					}else {
 						v = 0
 					}
 					network.Chunks[iderror + ntotal - nout + i][ k] = s * network.NwBuf[i] / net - v
-					e = e + safecrossentropy(v, network.NwBuf[i] / net)
+					*e += safecrossentropy(v, network.NwBuf[i] / net)
 				}
-			}        else {
+			}else {
 				//
 				// Least squares error func
 				// Error, dError/dOut(normalized)
 				//
-				kl = int(round(xy[cstart + k][ nin]))
+				kl = int(round((*xy)[cstart + k][ nin]))
 				for i := 0; i <= nout - 1; i++ {
 					if i == kl {
 						v = network.NwBuf[i] / net - 1
-					}        else {
+					}else {
 						v = network.NwBuf[i] / net
 					}
 					network.NwBuf[nout + i] = v
-					e = e + (v * v) / 2
+					*e += (v * v) / 2
 				}
 
 				//
@@ -3234,9 +3229,9 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 		//
 		for i := 0; i <= nout - 1; i++ {
 			for j := 0; j <= csize - 1; j++ {
-				v = network.Chunks[ntotal - nout + i][ j] * network.ColumnSigmas[nin + i] + network.ColumnMeans[nin + i] - xy[cstart + j][ nin + i]
+				v = network.Chunks[ntotal - nout + i][ j] * network.ColumnSigmas[nin + i] + network.ColumnMeans[nin + i] - (*xy)[cstart + j][ nin + i]
 				network.Chunks[iderror + ntotal - nout + i][ j] = v * network.ColumnSigmas[nin + i]
-				e = e + (v * v) / 2
+				*e += (v * v) / 2
 			}
 		}
 	}
@@ -3249,7 +3244,7 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 		// Extract info
 		//
 		offs = istart + i * nfieldwidth;
-		if network.StructInfo[offs + 0] > 0 | network.StructInfo[offs + 0] == -5 {
+		if network.StructInfo[offs + 0] > 0 || network.StructInfo[offs + 0] == -5 {
 			//
 			// Activation function
 			//
@@ -3275,7 +3270,7 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 				for i_ := 0; i_ <= csize - 1; i_++ {
 					v += network.Chunks[n1 + j - w1][ i_] * network.Chunks[iderror + i][ i_]
 				}
-				grad[j] += v
+				(*grad)[j] += v
 			}
 			for j := n1; j <= n2; j++ {
 				v = network.Weights[w1 + j - n1]
@@ -3287,7 +3282,7 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy *[][]float64, cstart, 
 		}
 		if network.StructInfo[offs + 0] < 0 {
 			bflag := false
-			if (network.StructInfo[offs + 0] == -2 | network.StructInfo[offs + 0] == -3) | network.StructInfo[offs + 0] == -4 {
+			if (network.StructInfo[offs + 0] == -2 || network.StructInfo[offs + 0] == -3) || network.StructInfo[offs + 0] == -4 {
 				//
 				// Special neuron type, no back-propagation required
 				//
@@ -3326,16 +3321,16 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 	t := 0.0
 	v := 0.0
 	et := 0.0
-	f := 0
-	df := 0
-	d2f := 0
-	deidyj := 0
-	mx := 0
-	q := 0
-	z := 0
-	s2 := 0
-	expi := 0
-	expj := 0
+	f := 0.0
+	df := 0.0
+	d2f := 0.0
+	deidyj := 0.0
+	mx := 0.0
+	q := 0.0
+	z := 0.0
+	s2 := 0.0
+	expi := 0.0
+	expj := 0.0
 	i_ := 0
 	i1_ := 0
 
@@ -3346,25 +3341,25 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 	//
 	// Prepare
 	//
-	x := [nin - 1 + 1]float64
-	desiredy := [nout - 1 + 1]float64
-	zeros := [wcount - 1 + 1]float64
-	gt := [wcount - 1 + 1]float64
-	rx := [ntotal + nout - 1 + 1][wcount - 1 + 1]float64
-	ry := [ntotal + nout - 1 + 1][ wcount - 1 + 1]float64
-	rdx := [ntotal + nout - 1 + 1][ wcount - 1 + 1]float64
-	rdy := [ntotal + nout - 1 + 1][ wcount - 1 + 1]float64
-	e = 0.0
+	x := make([]float64,nin - 1 + 1)
+	desiredy := make([]float64,nout - 1 + 1)
+	zeros := make([]float64,wcount - 1 + 1)
+	gt := make([]float64,wcount - 1 + 1)
+	rx := makeEmptyFloat64Matrix (ntotal + nout - 1 + 1,wcount - 1 + 1)
+	ry := makeEmptyFloat64Matrix (ntotal + nout - 1 + 1, wcount - 1 + 1)
+	rdx := makeEmptyFloat64Matrix (ntotal + nout - 1 + 1, wcount - 1 + 1)
+	rdy := makeEmptyFloat64Matrix (ntotal + nout - 1 + 1, wcount - 1 + 1)
+	*e = 0.0
 
 	for i := 0; i <= wcount - 1; i++ {
 		zeros[i] = 0
 	}
 	for i_ := 0; i_ <= wcount - 1; i_++ {
-		grad[i_] = zeros[i_]
+		(*grad)[i_] = zeros[i_]
 	}
 	for i := 0; i <= wcount - 1; i++ {
 		for i_ := 0; i_ <= wcount - 1; i_++ {
-			h[i][ i_] = zeros[i_]
+			(*h)[i][ i_] = zeros[i_]
 		}
 	}
 
@@ -3377,13 +3372,13 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 		// Now Neurons, DFDNET and DError contains results of the last run.
 		//
 		for i_ = 0; i_ <= nin - 1; i_++ {
-			x[i_] = xy[k][ i_]
+			x[i_] = (*xy)[k][ i_]
 		}
 		if MlpIsSoftMax(network) {
 			//
 			// class labels outputs
 			//
-			kl = int(round(xy[k][ nin]))
+			kl = int(round((*xy)[k][ nin]))
 			for i = 0; i <= nout - 1; i++ {
 				if i == kl {
 					desiredy[i] = 1
@@ -3391,27 +3386,27 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 					desiredy[i] = 0
 				}
 			}
-		}    else {
+		}else {
 			//
 			// real outputs
 			//
 			i1_ = (nin) - (0)
 			for i_ = 0; i_ <= nout - 1; i_++ {
-				desiredy[i_] = xy[k][ i_ + i1_]
+				desiredy[i_] = (*xy)[k][ i_ + i1_]
 			}
 		}
 		if naturalerr {
-			MlpGradn(network, x, desiredy, &et, &gt)
-		}    else {
-			MlpGrad(network, x, desiredy, &et, &gt)
+			MlpGradn(network, &x, &desiredy, &et, &gt)
+		}else {
+			MlpGrad(network, &x, &desiredy, &et, &gt)
 		}
 
 		//
 		// grad, error
 		//
-		e += et;
+		*e += et;
 		for i_ = 0; i_ <= wcount - 1; i_++ {
-			grad[i_] = grad[i_] + gt[i_]
+			(*grad)[i_] += gt[i_]
 		}
 
 		//
@@ -3426,7 +3421,7 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 			for i_ = 0; i_ <= wcount - 1; i_++ {
 				ry[i][ i_] = zeros[i_]
 			}
-			if network.StructInfo[offs + 0] > 0 | network.StructInfo[offs + 0] == -5 {
+			if network.StructInfo[offs + 0] > 0 || network.StructInfo[offs + 0] == -5 {
 				//
 				// Activation function
 				//
@@ -3627,11 +3622,11 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 					expi = network.NwBuf[i]
 					for j = 0; j <= nout - 1; j++ {
 						expj = network.NwBuf[j]
-						s2 := s * s
+						_s2 := s * s
 						if j == i {
-							deidyj = expi / s2 * ((z + expi) * (s - 2 * expi) / s + expi * s2 / s2)
+							deidyj = expi / _s2 * ((z + expi) * (s - 2 * expi) / s + expi * s2 / _s2)
 						}else {
-							deidyj = expi * expj / s2 * (s2 / s2 - 2 * z / s - (expi + expj) / s + (network.Y[i] - desiredy[i]) - (network.Y[j] - desiredy[j]))
+							deidyj = expi * expj / _s2 * (s2 / _s2 - 2 * z / s - (expi + expj) / s + (network.Y[i] - desiredy[i]) - (network.Y[j] - desiredy[j]))
 						}
 						for i_ = 0; i_ <= wcount - 1; i_++ {
 							rdy[ntotal - nout + i][ i_] = rdy[ntotal - nout + i][ i_] + deidyj * ry[ntotal - nout + j][ i_]
@@ -3654,7 +3649,7 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 			// 3. Special neuron
 			//
 			offs = istart + i * nfieldwidth
-			if network.StructInfo[offs + 0] > 0 | network.StructInfo[offs + 0] == -5 {
+			if network.StructInfo[offs + 0] > 0 || network.StructInfo[offs + 0] == -5 {
 				n1 = network.StructInfo[offs + 2]
 
 				//
@@ -3703,11 +3698,11 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 				for j = w1; j <= w2; j++ {
 					v = network.Neurons[n1 + j - w1]
 					for i_ = 0; i_ <= wcount - 1; i_++ {
-						h[j][ i_] = h[j][ i_] + v * rdx[i][i_]
+						(*h)[j][ i_] += v * rdx[i][i_]
 					}
 					v = network.DError[i]
 					for i_ = 0; i_ <= wcount - 1; i_++ {
-						h[j][ i_] = h[j][ i_] + v * ry[n1 + j - w1][ i_]
+						(*h)[j][ i_] += v * ry[n1 + j - w1][ i_]
 					}
 				}
 
@@ -3725,7 +3720,7 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 			}
 			if network.StructInfo[offs + 0] < 0 {
 				bflag := false
-				if (network.StructInfo[offs + 0] == -2 | network.StructInfo[offs + 0] == -3) | network.StructInfo[offs + 0] == -4 {
+				if (network.StructInfo[offs + 0] == -2 || network.StructInfo[offs + 0] == -3) || network.StructInfo[offs + 0] == -4 {
 					//
 					// Special neuron type, no back-propagation required
 					//
@@ -3740,4 +3735,26 @@ func mlphessianbatchinternal(network *Multilayerperceptron, xy *[][]float64, ssi
 		}
 	}
 	return nil
+}
+
+func makeEmptyFloat64Matrix(n, m int) [][]float64 {
+	result := make([][]float64, n)
+	for i := range result {
+		result[i] = make([]float64, m)
+	}
+	return result
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
