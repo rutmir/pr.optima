@@ -1,5 +1,4 @@
 package repository
-
 import (
 	"fmt"
 	"io/ioutil"
@@ -27,18 +26,19 @@ const (
 )
 var (
 	_limit int
+	_autoResize bool
 	_lastId int64
 	_rates []entities.Rate
 	_client *datastore.Client
 )
 
 type commandData struct {
-	action    commandAction
-	value     entities.Rate
-	size      int
-	result    chan <- interface{}
-	data      chan <- []entities.Rate
-	error     chan <- error
+	action commandAction
+	value  entities.Rate
+	size   int
+	result chan <- interface{}
+	data   chan <- []entities.Rate
+	error  chan <- error
 }
 type singleResult struct {
 	value entities.Rate
@@ -115,7 +115,7 @@ func (rr rateRepo) run() {
 				_lastId = command.value.Id
 				_rates = append(_rates, command.value)
 				l := len(_rates)
-				if l > _limit {
+				if l > _limit && _autoResize {
 					_rates = _rates[l - _limit :]
 				}
 			}
@@ -133,7 +133,7 @@ func (rr rateRepo) run() {
 			command.result <- len(_rates)
 		case resize:
 			l := len(_rates)
-			if l > command.size {
+			if l >= command.size {
 				_rates = _rates[l - command.size :]
 				command.error <- nil
 				command.result <- len(_rates)
@@ -147,8 +147,9 @@ func (rr rateRepo) run() {
 		}
 	}
 }
-func New(limit int) RateRepo {
+func New(limit int, autoResize bool) RateRepo {
 	_limit = limit
+	_autoResize = autoResize == true
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
@@ -168,7 +169,7 @@ func New(limit int) RateRepo {
 	}
 	_client = client
 
-	if err := loadStartData(); err != nil {
+	if err := loadStartRates(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -187,7 +188,7 @@ type RateRepoPushResult struct {
 }
 
 // Cloud datastore logic
-func loadStartData() error {
+func loadStartRates() error {
 	var dst []entities.Rate
 	if _, err := _client.GetAll(context.Background(), datastore.NewQuery(king).Order("-id").Limit(_limit), &dst); err != nil {
 		return err

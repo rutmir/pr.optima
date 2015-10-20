@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"pr.optima/src/core/neural/mlpbase"
 	"pr.optima/src/core/neural/mlptrain"
+	"core/neural/utils"
 )
 
 const (
@@ -507,24 +508,24 @@ func MlpeUnserialize(ra *[]float64, ensemble *mlpensemble) {
 	i_ := 0
 	i1_ := 0
 
-	if !(int(round(ra[1])) == mlpevnum) {
+	if !(utils.RoundInt(ra[1]) == mlpevnum) {
 		return fmt.Errorf("MLPEUnserialize: incorrect array!")
 	}
 
 	//
 	// load info
 	//
-	ensemble.ensemblesize = int(round(ra[2]))
-	ensemble.nin = int(round(ra[3]))
-	ensemble.nout = int(round(ra[4]))
-	ensemble.wcount = int(round(ra[5]))
-	ensemble.issoftmax = int(round(ra[6])) == 1
-	ensemble.postprocessing = int(round(ra[7])) == 1
-	ssize = int(round(ra[8]))
-	ntotal = int(round(ra[9]))
-	ccount = int(round(ra[10]))
-	offs = int(round(ra[11]))
-	ensemble.serializedlen = int(round(ra[12]))
+	ensemble.ensemblesize = utils.RoundInt(ra[2])
+	ensemble.nin = utils.RoundInt(ra[3])
+	ensemble.nout = utils.RoundInt(ra[4])
+	ensemble.wcount = utils.RoundInt(ra[5])
+	ensemble.issoftmax = utils.RoundInt(ra[6]) == 1
+	ensemble.postprocessing = utils.RoundInt(ra[7]) == 1
+	ssize = utils.RoundInt(ra[8])
+	ntotal = utils.RoundInt(ra[9])
+	ccount = utils.RoundInt(ra[10])
+	offs = utils.RoundInt(ra[11])
+	ensemble.serializedlen = utils.RoundInt(ra[12])
 
 	//
 	//  Allocate arrays
@@ -545,7 +546,7 @@ func MlpeUnserialize(ra *[]float64, ensemble *mlpensemble) {
 	// load data
 	//
 	for i = offs; i <= offs + ssize - 1; i++ {
-		ensemble.structinfo[i - offs] = int(round(ra[i]))
+		ensemble.structinfo[i - offs] = utils.RoundInt(ra[i])
 	}
 	offs = offs + ssize
 	i1_ = (offs) - (0)
@@ -912,7 +913,7 @@ func mlpebagginginternal(ensemble *mlpensemble, xy *[][]float64, npoints int, de
 	}
 	if ensemble.issoftmax {
 		for i = 0; i <= npoints - 1; i++ {
-			if int(round(xy[i][ ensemble.nin])) < 0 | int(round(xy[i][ ensemble.nin])) >= ensemble.nout {
+			if utils.RoundInt(xy[i][ ensemble.nin]) < 0 || utils.RoundInt(xy[i][ ensemble.nin]) >= ensemble.nout {
 				info = -2
 				return
 			}
@@ -1171,7 +1172,7 @@ func MlpeTraines(ensemble *mlpensemble, xy *[][]float64, npoints int, decay floa
 	}
 	if ensemble.issoftmax {
 		for i = 0; i <= npoints - 1; i++ {
-			if int(round(xy[i][ ensemble.nin])) < 0 | int(round(xy[i][ ensemble.nin])) >= ensemble.nout {
+			if utils.RoundInt(xy[i][ ensemble.nin]) < 0 || utils.RoundInt(xy[i][ ensemble.nin]) >= ensemble.nout {
 				info = -2
 				return
 			}
@@ -1261,288 +1262,6 @@ func MlpeTraines(ensemble *mlpensemble, xy *[][]float64, npoints int, decay floa
 }
 
 /*************************************************************************
-Subroutine prepares K-fold split of the training set.
-
-NOTES:
-	"NClasses>0" means that we have classification task.
-	"NClasses<0" means regression task with -NClasses real outputs.
-*************************************************************************/
-func mlpkfoldsplit(xy *[][]float64, npoints, nclasses, foldscount int, stratifiedsplits bool, folds *[]int) {
-	i := 0
-	j := 0
-	k := 0
-
-	folds = [0]int
-
-
-	//
-	// test parameters
-	//
-	if !(npoints > 0) {
-		return fmt.Errorf("MLPKFoldSplit: wrong NPoints!")
-	}
-	if !(nclasses > 1 | nclasses < 0) {
-		return fmt.Errorf("MLPKFoldSplit: wrong NClasses!")
-	}
-	if !(foldscount >= 2 & foldscount <= npoints) {
-		return fmt.Errorf("MLPKFoldSplit: wrong FoldsCount!")
-	}
-	if !(!stratifiedsplits) {
-		return fmt.Errorf("MLPKFoldSplit: stratified splits are not supported!")
-	}
-
-	//
-	// Folds
-	//
-	folds = [npoints - 1 + 1]int
-	for i = 0; i <= npoints - 1; i++ {
-		folds[i] = i * foldscount / npoints
-	}
-	for i = 0; i <= npoints - 2; i++ {
-		j = i + rand.Intn(npoints - i)
-		if j != i {
-			k = folds[i]
-			folds[i] = folds[j]
-			folds[j] = k
-		}
-	}
-}
-
-/*************************************************************************
-Internal cross-validation subroutine
-*************************************************************************/
-func mlpkfoldcvgeneral(n *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, lmalgorithm bool, wstep float64, maxits bool, info *int, rep mlptrain.MlpReport, cvrep mlptrain.MlpCvReport) {
-	i := 0
-	fold := 0
-	j := 0
-	k := 0
-	network := mlpbase.NewMlp()
-	nin := 0
-	nout := 0
-	rowlen := 0
-	wcount := 0
-	nclasses := 0
-	tssize := 0
-	cvssize := 0
-	cvset := [0][0]float64
-	testset := [0][0]float64
-	folds := [0]int
-	relcnt := 0
-	internalrep := &mlptrain.MlpReport{}
-	x := [0]float64
-	y := [0]float64
-	i_ := 0
-
-	info = 0;
-
-
-	//
-	// Read network geometry, test parameters
-	//
-	mlpbase.MlpProperties(n, &nin, &nout, &wcount)
-	if mlpbase.MlpIsSoftMax(n) {
-		nclasses = nout
-		rowlen = nin + 1
-	}else {
-		nclasses = -nout
-		rowlen = nin + nout
-	}
-	if ( (npoints <= 0 | foldscount < 2) | foldscount > npoints )
-	{
-		info = -1;
-		return;
-	}
-	mlpbase.MlpCopy(n, network)
-
-	//
-	// K-fold out cross-validation.
-	// First, estimate generalization error
-	//
-	testset = [npoints - 1 + 1][ rowlen - 1 + 1]float64
-	cvset = [npoints - 1 + 1][ rowlen - 1 + 1]float64
-	x = [nin - 1 + 1]float64
-	y = [nout - 1 + 1]float64
-	mlpkfoldsplit(xy, npoints, nclasses, foldscount, false, &folds)
-	cvrep.RelclsError = 0
-	cvrep.Avgce = 0
-	cvrep.RmsError = 0
-	cvrep.AvgError = 0
-	cvrep.AvgrelError = 0
-	rep.NGrad = 0
-	rep.NHess = 0
-	rep.NCholesky = 0
-	relcnt = 0
-	for fold = 0; fold <= foldscount - 1; fold++ {
-		//
-		// Separate set
-		//
-		tssize = 0
-		cvssize = 0
-		for i = 0; i <= npoints - 1; i++ {
-			if folds[i] == fold {
-				for i_ = 0; i_ <= rowlen - 1; i_++ {
-					testset[tssize][ i_] = xy[i][ i_]
-				}
-				tssize = tssize + 1;
-
-			}    else {
-				for (i_ = 0; i_ <= rowlen - 1; i_++)
-				{
-				cvset[cvssize, i_] = xy[i, i_];
-				}
-				cvssize = cvssize + 1;
-			}
-		}
-
-		//
-		// Train on CV training set
-		//
-		if lmalgorithm {
-			mlptrain.MlpTrainLm(network, cvset, cvssize, decay, restarts, info, internalrep)
-		}else {
-			mlptrain.MlpTrainLbfgs(network, cvset, cvssize, decay, restarts, wstep, maxits, info, internalrep)
-		}
-		if info < 0 {
-			cvrep.RelclsError = 0
-			cvrep.Avgce = 0
-			cvrep.RmsError = 0
-			cvrep.AvgError = 0
-			cvrep.AvgrelError = 0
-			return
-		}
-		rep.NGrad = rep.NGrad + internalrep.NGrad
-		rep.NHess = rep.NHess + internalrep.NHess
-		rep.NCholesky = rep.NCholesky + internalrep.NCholesky
-
-		//
-		// Estimate error using CV test set
-		//
-		if mlpbase.MlpIsSoftMax(network) {
-			//
-			// classification-only code
-			//
-			cvrep.RelclsError = cvrep.RelclsError + mlpbase.MlpClsError(network, testset, tssize)
-			cvrep.Avgce = cvrep.Avgce + mlpbase.MlpErrorN(network, testset, tssize)
-		}
-		for i = 0; i <= tssize - 1; i++ {
-			for i_ = 0; i_ <= nin - 1; i_++ {
-				x[i_] = testset[i][ i_]
-			}
-			mlpbase.MlpProcess(network, &x, &y)
-			if mlpbase.MlpIsSoftMax(network) {
-				//
-				// Classification-specific code
-				//
-				k = int(round(testset[i][ nin]))
-				for j = 0; j <= nout - 1; j++ {
-					if j == k {
-						_y := y[j] - 1
-						cvrep.RmsError = cvrep.RmsError + (_y * _y)
-						cvrep.AvgError = cvrep.AvgError + math.Abs(_y)
-						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs(_y)
-						relcnt = relcnt + 1
-					}else {
-						cvrep.RmsError = cvrep.RmsError + (y[j] * y[j])
-						cvrep.AvgError = cvrep.AvgError + math.Abs(y[j])
-					}
-				}
-			}else {
-				//
-				// Regression-specific code
-				//
-				for j = 0; j <= nout - 1; j++ {
-					_y := y[j] - testset[i][ nin + j]
-					cvrep.RmsError = cvrep.RmsError + (_y * _y)
-					cvrep.AvgError = cvrep.AvgError + math.Abs(_y)
-					if testset[i][ nin + j] != 0 {
-						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs((y[j] - testset[i][ nin + j]) / testset[i][ nin + j])
-						relcnt = relcnt + 1
-					}
-				}
-			}
-		}
-	}
-	if mlpbase.MlpIsSoftMax(network) {
-		cvrep.RelclsError = cvrep.RelclsError / npoints
-		cvrep.Avgce = cvrep.Avgce / (math.Log(2) * npoints)
-	}
-	cvrep.RmsError = math.Sqrt(cvrep.RmsError / (npoints * nout))
-	cvrep.AvgError = cvrep.AvgError / (npoints * nout)
-	cvrep.AvgrelError = cvrep.AvgrelError / relcnt
-	info = 1
-}
-
-/*************************************************************************
-Cross-validation estimate of generalization error.
-
-Base algorithm - L-BFGS.
-
-INPUT PARAMETERS:
-	Network     -   neural network with initialized geometry.   Network is
-					not changed during cross-validation -  it is used only
-					as a representative of its architecture.
-	XY          -   training set.
-	SSize       -   training set size
-	Decay       -   weight  decay, same as in MLPTrainLBFGS
-	Restarts    -   number of restarts, >0.
-					restarts are counted for each partition separately, so
-					total number of restarts will be Restarts*FoldsCount.
-	WStep       -   stopping criterion, same as in MLPTrainLBFGS
-	MaxIts      -   stopping criterion, same as in MLPTrainLBFGS
-	FoldsCount  -   number of folds in k-fold cross-validation,
-					2<=FoldsCount<=SSize.
-					recommended value: 10.
-
-OUTPUT PARAMETERS:
-	Info        -   return code, same as in MLPTrainLBFGS
-	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
-	CVRep       -   generalization error estimates
-
-  -- ALGLIB --
-	 Copyright 09.12.2007 by Bochkanov Sergey
-*************************************************************************/
-func mlpkfoldcvlbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits, foldscount int, info *int, rep *mlptrain.MlpReport, cvrep *mlptrain.MlpCvReport) {
-	info = 0
-	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, false, wstep, maxits, info, rep, cvrep)
-}
-
-/*************************************************************************
-Cross-validation estimate of generalization error.
-
-Base algorithm - Levenberg-Marquardt.
-
-INPUT PARAMETERS:
-	Network     -   neural network with initialized geometry.   Network is
-					not changed during cross-validation -  it is used only
-					as a representative of its architecture.
-	XY          -   training set.
-	SSize       -   training set size
-	Decay       -   weight  decay, same as in MLPTrainLBFGS
-	Restarts    -   number of restarts, >0.
-					restarts are counted for each partition separately, so
-					total number of restarts will be Restarts*FoldsCount.
-	FoldsCount  -   number of folds in k-fold cross-validation,
-					2<=FoldsCount<=SSize.
-					recommended value: 10.
-
-OUTPUT PARAMETERS:
-	Info        -   return code, same as in MLPTrainLBFGS
-	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
-	CVRep       -   generalization error estimates
-
-  -- ALGLIB --
-	 Copyright 09.12.2007 by Bochkanov Sergey
-*************************************************************************/
-func mlpkfoldcvlm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, info *int, rep *mlptrain.MlpReport, cvrep *mlptrain.MlpCvReport) {
-	info = 0;
-	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, true, 0.0, 0, info, rep, cvrep)
-}
-
-func round(f float64) float64 {
-	return math.Floor(f + .5)
-}
-
-/*************************************************************************
 This set of routines (DSErrAllocate, DSErrAccumulate, DSErrFinish)
 calculates different error functions (classification error, cross-entropy,
 rms, avg, avg.rel errors).
@@ -1598,12 +1317,12 @@ func dserraccumulate(buf, y, desiredy *[]float64) {
 	ev := 0.0
 
 	offs := 5
-	nclasses = int(round(buf[offs]))
+	nclasses = utils.RoundInt(buf[offs])
 	if nclasses > 0 {
 		//
 		// Classification
 		//
-		rmax = int(round(desiredy[0]))
+		rmax = utils.RoundInt(desiredy[0])
 		mmax = 0
 		for j = 1; j <= nclasses - 1; j++ {
 			if y[j] > y[mmax] {
@@ -1625,8 +1344,7 @@ func dserraccumulate(buf, y, desiredy *[]float64) {
 			}else {
 				ev = 0
 			}
-			v2 := (v - ev) * (v - ev)
-			buf[2] = buf[2] + v2
+			buf[2] = buf[2] + utils.SqrFloat64(v - ev)
 			buf[3] = buf[3] + math.Abs(v - ev)
 			if ev != 0 {
 				buf[4] = buf[4] + math.Abs((v - ev) / ev)
@@ -1657,8 +1375,7 @@ func dserraccumulate(buf, y, desiredy *[]float64) {
 		for j = 0; j <= nout - 1; j++ {
 			v = y[j]
 			ev = desiredy[j]
-			v2 := (v - ev) * (v - ev)
-			buf[2] = buf[2] + v2
+			buf[2] = buf[2] + utils.SqrFloat64(v - ev)
 			buf[3] = buf[3] + math.Abs(v - ev);
 			if ev != 0 {
 				buf[4] = buf[4] + math.Abs((v - ev) / ev)
@@ -1677,7 +1394,7 @@ See DSErrAllocate for comments on this routine.
 *************************************************************************/
 func dserrfinish(buf *[]float64) {
 	offs := 5
-	nout := math.Abs(int(round(buf[offs])))
+	nout := math.Abs(utils.RoundInt(buf[offs]))
 	if buf[offs + 1] != 0 {
 		buf[0] = buf[0] / buf[offs + 1]
 		buf[1] = buf[1] / buf[offs + 1]

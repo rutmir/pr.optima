@@ -1,20 +1,70 @@
 package neural
 
-import "pr.optima/src/core/neural/mlpbase"
+import (
+	"pr.optima/src/core/neural/mlpbase"
+	"pr.optima/src/core/neural/mlptrain"
+)
 
 type MultiLayerPerceptron struct {
 	innerobj *mlpbase.Multilayerperceptron
 }
-
-func NewMLP() *MultiLayerPerceptron {
+func NewMlp() *MultiLayerPerceptron {
 	return &MultiLayerPerceptron{
 		innerobj: mlpbase.NewMlp()}
 }
-
 func CreateMLP(mlp *mlpbase.Multilayerperceptron) *MultiLayerPerceptron {
 	return &MultiLayerPerceptron{
 		innerobj: mlp}
 }
+
+/*************************************************************************
+Training report:
+	* NGrad     - number of gradient calculations
+	* NHess     - number of Hessian calculations
+	* NCholesky - number of Cholesky decompositions
+*************************************************************************/
+type MlpReport struct {
+	innerObj *mlptrain.MlpReport
+}
+func NewMlpReport() *MlpReport {
+	return &MlpReport{
+		innerObj: &mlptrain.MlpReport{}}
+}
+func CreateMlpReport(report *mlptrain.MlpReport) *MlpReport {
+	return &MlpReport{
+		innerObj: report}
+}
+func (r *MlpReport) GetNGrad() int { return r.innerObj.NGrad }
+func (r *MlpReport) SetNGrad(value int) { r.innerObj.NGrad = value }
+func (r *MlpReport) GetNHess() int { return r.innerObj.NHess }
+func (r *MlpReport) SetNHess(value int) { r.innerObj.NHess = value }
+func (r *MlpReport) GetNCholesky() int { return r.innerObj.NCholesky }
+func (r *MlpReport) SetNCholesky(value int) { r.innerObj.NCholesky = value }
+
+/*************************************************************************
+Cross-validation estimates of generalization error
+*************************************************************************/
+type MlpCvReport struct {
+	innerObj *mlptrain.MlpCvReport
+}
+func NewMlpCvReport() *MlpCvReport {
+	return &MlpCvReport{
+		innerObj: &mlptrain.MlpCvReport{}}
+}
+func CreateMlpCvReport(report *mlptrain.MlpCvReport) *MlpCvReport {
+	return &MlpCvReport{
+		innerObj: report}
+}
+func (r *MlpCvReport) GetAvgce() float64 { return r.innerObj.Avgce }
+func (r *MlpCvReport) SetAvgce(value float64) { r.innerObj.Avgce = value }
+func (r *MlpCvReport) GetAvgError() float64 { return r.innerObj.AvgError }
+func (r *MlpCvReport) SetAvgError(value float64) { r.innerObj.AvgError = value }
+func (r *MlpCvReport) GetAvgrelError() float64 { return r.innerObj.AvgrelError }
+func (r *MlpCvReport) SetAvgrelError(value float64) { r.innerObj.AvgrelError = value }
+func (r *MlpCvReport) GetRelclsError() float64 { return r.innerObj.RelclsError }
+func (r *MlpCvReport) SetRelclsError(value float64) { r.innerObj.RelclsError = value }
+func (r *MlpCvReport) GetRmsError() float64 { return r.innerObj.RmsError }
+func (r *MlpCvReport) SetRmsError(value float64) { r.innerObj.RmsError = value }
 
 /*************************************************************************
 Creates  neural  network  with  NIn  inputs,  NOut outputs, without hidden
@@ -25,11 +75,10 @@ random values.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreate0(nin, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreate0(nin, nout, network.innerobj)
 	return network
 }
-
 
 /*************************************************************************
 Same  as  MLPCreate0,  but  with  one  hidden  layer  (NHid  neurons) with
@@ -39,7 +88,7 @@ non-linear activation function. Output layer is linear.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreate1(nin, nhid, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreate1(nin, nhid, nout, network.innerobj)
 	return network
 }
@@ -53,7 +102,7 @@ with non-linear activation function. Output layer is linear.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreate2(nin, nhid1, nhid2, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreate2(nin, nhid1, nhid2, nout, network.innerobj)
 	return network
 }
@@ -73,7 +122,7 @@ or
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateB0(nin, nout int, b, d float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreateb0(nin, nout, b, d, network.innerobj)
 	return network
 }
@@ -85,7 +134,7 @@ Same as MLPCreateB0 but with non-linear hidden layer.
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateB1(nin, nhid, nout int, b, d float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreateb1(nin, nhid, nout, b, d, network.innerobj)
 	return network
 }
@@ -97,7 +146,7 @@ Same as MLPCreateB0 but with two non-linear hidden layers.
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateB2(nin, nhid1, nhid2, nout int, b, d float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreateb2(nin, nhid1, nhid2, nout, b, d, network.innerobj)
 	return network
 }
@@ -111,7 +160,7 @@ random values. Activation function of the output layer takes values [A,B].
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateR0(nin, nout int, a, b float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreater0(nin, nout, a, b, network.innerobj)
 	return network
 }
@@ -123,7 +172,7 @@ Same as MLPCreateR0, but with non-linear hidden layer.
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateR1(nin, nhid, nout int, a, b float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreater1(nin, nhid, nout, a, b, network.innerobj)
 	return network
 }
@@ -135,7 +184,7 @@ Same as MLPCreateR0, but with two non-linear hidden layers.
 	 Copyright 30.03.2008 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateR2(nin, nhid1, nhid2, nout int, a, b float64) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreater2(nin, nhid1, nhid2, nout, a, b, network.innerobj)
 	return network
 }
@@ -150,7 +199,7 @@ probabilities).
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateC0(nin, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreatec0(nin, nout, network.innerobj)
 	return network
 }
@@ -162,7 +211,7 @@ Same as MLPCreateC0, but with one non-linear hidden layer.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateC1(nin, nhid, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreatec1(nin, nhid, nout, network.innerobj)
 	return network
 }
@@ -174,7 +223,7 @@ Same as MLPCreateC0, but with two non-linear hidden layers.
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
 func MlpCreateC2(nin, nhid1, nhid2, nout int) *MultiLayerPerceptron {
-	network := NewMLP()
+	network := NewMlp()
 	mlpbase.MlpCreatec2(nin, nhid1, nhid2, nout, network.innerobj)
 	return network
 }
@@ -566,7 +615,7 @@ RESULT:
   -- ALGLIB --
 	 Copyright 25.12.2008 by Bochkanov Sergey
 *************************************************************************/
-func MlpRelclsError(network *MultiLayerPerceptron, xy *[][]float64, npoints int) float64 {
+func MlpRelClsError(network *MultiLayerPerceptron, xy *[][]float64, npoints int) float64 {
 	return mlpbase.MlpRelClsError(network.innerobj, xy, npoints)
 }
 
@@ -626,7 +675,7 @@ RESULT:
   -- ALGLIB --
 	 Copyright 11.03.2008 by Bochkanov Sergey
 *************************************************************************/
-func mlpavgerror(network *MultiLayerPerceptron, xy *[][]float64, npoints int) float64 {
+func MlpAvgError(network *MultiLayerPerceptron, xy *[][]float64, npoints int) float64 {
 	return mlpbase.MlpAvgError(network.innerobj, xy, npoints)
 }
 
@@ -646,7 +695,7 @@ RESULT:
   -- ALGLIB --
 	 Copyright 11.03.2008 by Bochkanov Sergey
 *************************************************************************/
-func mlpavgrelerror(network *MultiLayerPerceptron, xy *[][]float64, npoints  int) float64 {
+func MlpAvgRelError(network *MultiLayerPerceptron, xy *[][]float64, npoints  int) float64 {
 	return mlpbase.MlpAvgRelError(network.innerobj, xy, npoints)
 }
 
@@ -722,7 +771,7 @@ OUTPUT PARAMETERS:
   -- ALGLIB --
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
-func MlpGradBatch(network *MultiLayerPerceptron, xy *[][]float64, ssize int, grad *[]float64) (e float64) {
+func MlpGradBatch(network *MultiLayerPerceptron, xy [][]float64, ssize int, grad *[]float64) (e float64) {
 	e = 0
 	mlpbase.MlpGradBatch(network.innerobj, xy, ssize, &e, grad)
 	return
@@ -751,7 +800,7 @@ OUTPUT PARAMETERS:
   -- ALGLIB --
 	 Copyright 04.11.2007 by Bochkanov Sergey
 *************************************************************************/
-func MlpGradNBatch(network *MultiLayerPerceptron, xy *[][]float64, ssize int, grad *[]float64) (e float64) {
+func MlpGradNBatch(network *MultiLayerPerceptron, xy [][]float64, ssize int, grad *[]float64) (e float64) {
 	e = 0
 	mlpbase.MlpGradNBatch(network.innerobj, xy, ssize, &e, grad)
 	return
@@ -787,4 +836,209 @@ Internal subroutine.
 *************************************************************************/
 func MlpHessianBatch(network *MultiLayerPerceptron, xy *[][]float64, ssize int, e *float64, grad *[]float64, h *[][]float64) {
 	mlpbase.MlpHessianBatch(network.innerobj, xy, ssize, e, grad, h)
+}
+
+/*************************************************************************
+Neural network training  using  modified  Levenberg-Marquardt  with  exact
+Hessian calculation and regularization. Subroutine trains  neural  network
+with restarts from random positions. Algorithm is well  suited  for  small
+and medium scale problems (hundreds of weights).
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry
+	XY          -   training set
+	NPoints     -   training set size
+	Decay       -   weight decay constant, >=0.001
+					Decay term 'Decay*||Weights||^2' is added to error
+					function.
+					If you don't know what Decay to choose, use 0.001.
+	Restarts    -   number of restarts from random position, >0.
+					If you don't know what Restarts to choose, use 2.
+
+OUTPUT PARAMETERS:
+	Network     -   trained neural network.
+	Info        -   return code:
+					* -9, if internal matrix inverse subroutine failed
+					* -2, if there is a point with class number
+						  outside of [0..NOut-1].
+					* -1, if wrong parameters specified
+						  (NPoints<0, Restarts<1).
+					*  2, if task has been solved.
+	Rep         -   training report
+
+  -- ALGLIB --
+	 Copyright 10.03.2009 by Bochkanov Sergey
+*************************************************************************/
+func MlpTrainLm(network *MultiLayerPerceptron, xy *[][]float64, npoints int, decay float64, restarts int) (int, *MlpReport) {
+	info := 0
+	rep := MlpReport{}
+	mlptrain.MlpTrainLm(network.innerobj, xy, npoints, decay, restarts, &info, rep.innerObj)
+	return info, &rep
+}
+
+/*************************************************************************
+Neural  network  training  using  L-BFGS  algorithm  with  regularization.
+Subroutine  trains  neural  network  with  restarts from random positions.
+Algorithm  is  well  suited  for  problems  of  any dimensionality (memory
+requirements and step complexity are linear by weights number).
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry
+	XY          -   training set
+	NPoints     -   training set size
+	Decay       -   weight decay constant, >=0.001
+					Decay term 'Decay*||Weights||^2' is added to error
+					function.
+					If you don't know what Decay to choose, use 0.001.
+	Restarts    -   number of restarts from random position, >0.
+					If you don't know what Restarts to choose, use 2.
+	WStep       -   stopping criterion. Algorithm stops if  step  size  is
+					less than WStep. Recommended value - 0.01.  Zero  step
+					size means stopping after MaxIts iterations.
+	MaxIts      -   stopping   criterion.  Algorithm  stops  after  MaxIts
+					iterations (NOT gradient  calculations).  Zero  MaxIts
+					means stopping when step is sufficiently small.
+
+OUTPUT PARAMETERS:
+	Network     -   trained neural network.
+	Info        -   return code:
+					* -8, if both WStep=0 and MaxIts=0
+					* -2, if there is a point with class number
+						  outside of [0..NOut-1].
+					* -1, if wrong parameters specified
+						  (NPoints<0, Restarts<1).
+					*  2, if task has been solved.
+	Rep         -   training report
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func MlpTrainLbfgs(network *MultiLayerPerceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits int) (int, *MlpReport, error) {
+	info := 0
+	rep := NewMlpReport()
+	if err := mlptrain.MlpTrainLbfgs(network.innerobj, xy, npoints, decay, restarts, wstep, maxits, &info, rep.innerObj); err != nil {
+		return 0, nil, err
+	}
+	return info, rep, nil
+}
+
+/*************************************************************************
+Neural network training using early stopping (base algorithm - L-BFGS with
+regularization).
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry
+	TrnXY       -   training set
+	TrnSize     -   training set size
+	ValXY       -   validation set
+	ValSize     -   validation set size
+	Decay       -   weight decay constant, >=0.001
+					Decay term 'Decay*||Weights||^2' is added to error
+					function.
+					If you don't know what Decay to choose, use 0.001.
+	Restarts    -   number of restarts from random position, >0.
+					If you don't know what Restarts to choose, use 2.
+
+OUTPUT PARAMETERS:
+	Network     -   trained neural network.
+	Info        -   return code:
+					* -2, if there is a point with class number
+						  outside of [0..NOut-1].
+					* -1, if wrong parameters specified
+						  (NPoints<0, Restarts<1, ...).
+					*  2, task has been solved, stopping  criterion  met -
+						  sufficiently small step size.  Not expected  (we
+						  use  EARLY  stopping)  but  possible  and not an
+						  error.
+					*  6, task has been solved, stopping  criterion  met -
+						  increasing of validation set error.
+	Rep         -   training report
+
+NOTE:
+
+Algorithm stops if validation set error increases for  a  long  enough  or
+step size is small enought  (there  are  task  where  validation  set  may
+decrease for eternity). In any case solution returned corresponds  to  the
+minimum of validation set error.
+
+  -- ALGLIB --
+	 Copyright 10.03.2009 by Bochkanov Sergey
+*************************************************************************/
+func MlpTrainEs(network *MultiLayerPerceptron, trnxy [][]float64, trnsize int, valxy *[][]float64, valsize int, decay float64, restarts  int) (int, *MlpReport) {
+	info := 0
+	rep := MlpReport{}
+	mlptrain.MlpTraines(network.innerobj, trnxy, trnsize, valxy, valsize, decay, restarts, &info, rep.innerObj)
+	return info, &rep
+}
+
+/*************************************************************************
+    Cross-validation estimate of generalization error.
+
+    Base algorithm - L-BFGS.
+
+    INPUT PARAMETERS:
+        Network     -   neural network with initialized geometry.   Network is
+                        not changed during cross-validation -  it is used only
+                        as a representative of its architecture.
+        XY          -   training set.
+        SSize       -   training set size
+        Decay       -   weight  decay, same as in MLPTrainLBFGS
+        Restarts    -   number of restarts, >0.
+                        restarts are counted for each partition separately, so
+                        total number of restarts will be Restarts*FoldsCount.
+        WStep       -   stopping criterion, same as in MLPTrainLBFGS
+        MaxIts      -   stopping criterion, same as in MLPTrainLBFGS
+        FoldsCount  -   number of folds in k-fold cross-validation,
+                        2<=FoldsCount<=SSize.
+                        recommended value: 10.
+
+    OUTPUT PARAMETERS:
+        Info        -   return code, same as in MLPTrainLBFGS
+        Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+        CVRep       -   generalization error estimates
+
+      -- ALGLIB --
+         Copyright 09.12.2007 by Bochkanov Sergey
+    *************************************************************************/
+func MlpKfoldCvLbfgs(network *MultiLayerPerceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits, foldscount int) (int, *MlpReport, *MlpCvReport) {
+	info := 0
+	rep := MlpReport{}
+	cvrep := MlpCvReport{}
+	mlptrain.Mlpkfoldcvlbfgs(network.innerobj, xy, npoints, decay, restarts, wstep, maxits, foldscount, &info, rep.innerObj, cvrep.innerObj);
+	return info, &rep, &cvrep
+}
+
+/*************************************************************************
+Cross-validation estimate of generalization error.
+
+Base algorithm - Levenberg-Marquardt.
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry.   Network is
+					not changed during cross-validation -  it is used only
+					as a representative of its architecture.
+	XY          -   training set.
+	SSize       -   training set size
+	Decay       -   weight  decay, same as in MLPTrainLBFGS
+	Restarts    -   number of restarts, >0.
+					restarts are counted for each partition separately, so
+					total number of restarts will be Restarts*FoldsCount.
+	FoldsCount  -   number of folds in k-fold cross-validation,
+					2<=FoldsCount<=SSize.
+					recommended value: 10.
+
+OUTPUT PARAMETERS:
+	Info        -   return code, same as in MLPTrainLBFGS
+	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+	CVRep       -   generalization error estimates
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func MlpKfoldCvLm(network *MultiLayerPerceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int) (int, *MlpReport, *MlpCvReport) {
+	info := 0
+	rep := MlpReport{}
+	cvrep := MlpCvReport{}
+	mlptrain.Mlpkfoldcvlm(network.innerobj, xy, npoints, decay, restarts, foldscount, &info, rep.innerObj, cvrep.innerObj)
+	return info, &rep, &cvrep
 }

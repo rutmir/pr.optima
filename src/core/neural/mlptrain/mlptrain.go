@@ -1,9 +1,11 @@
 package mlptrain
 import (
-	"pr.optima/src/core/neural/mlpbase"
 	"math"
 	"fmt"
 	"math/cmplx"
+	"math/rand"
+	"pr.optima/src/core/neural/mlpbase"
+	"core/neural/utils"
 )
 
 const (
@@ -55,19 +57,19 @@ reverse communication structure
 ********************************************************************/
 type rcommstate struct {
 	stage int
-	ia    [...]int
-	ba    [...]bool
-	ra    [...]float64
-	ca    [...]complex128
+	ia    []int
+	ba    []bool
+	ra    []float64
+	ca    []complex128
 };
 
 func NewRCommState() *rcommstate {
 	return &rcommstate{
 		stage : -1,
-		ia : [0]int,
-		ba : [0]bool,
-		ra : [0]float64,
-		ca : [0]complex128}
+		ia : make([]int, 0),
+		ba : make([]bool, 0),
+		ra : make([]float64, 0),
+		ca : make([]complex128, 0)}
 }
 
 type linminstate struct {
@@ -114,28 +116,28 @@ type minlbfgsstate struct {
 	k                  int
 	q                  int
 	p                  int
-	rho                [...]float64
-	yk                 [...][...]float64
-	sk                 [...][...]float64
-	theta              [...]float64
-	d                  [...]float64
+	rho                []float64
+	yk                 [][]float64
+	sk                 [][]float64
+	theta              []float64
+	d                  []float64
 	stp                float64
-	work               [...]float64
+	work               []float64
 	fold               float64
 	trimthreshold      float64
 	prectype           int
 	gammak             float64
-	denseh             [...][...]float64
-	diagh              [...]float64
+	denseh             [][]float64
+	diagh              []float64
 	fbase              float64
 	fm2                float64
-	fm1                float64;
+	fm1                float64
 	fp1                float64
 	fp2                float64
-	autobuf            [...]float64
-	x                  [...]float64
+	autobuf            []float64
+	x                  []float64
 	f                  float64
-	g                  [...]float64
+	g                  []float64
 	needf              bool
 	needfg             bool
 	xupdated           bool
@@ -148,18 +150,18 @@ type minlbfgsstate struct {
 
 func NewMinLbfgsState() *minlbfgsstate {
 	return &minlbfgsstate{
-		s :[0]float64,
-		rho :[0]float64,
-		yk :[0][ 0]float64,
-		sk :[0][0]float64,
-		theta :[0]float64,
-		d :[0]float64,
-		work :[0]float64,
-		denseh :[0][ 0]float64,
-		diagh :[0]float64,
-		autobuf :[0]float64,
-		x :[0]float64,
-		g :[0]float64,
+		s :make([]float64, 0),
+		rho :make([]float64, 0),
+		yk :utils.MakeMatrixFloat64(0, 0),
+		sk :utils.MakeMatrixFloat64(0, 0),
+		theta :make([]float64, 0),
+		d :make([]float64, 0),
+		work :make([]float64, 0),
+		denseh :utils.MakeMatrixFloat64(0, 0),
+		diagh :make([]float64, 0),
+		autobuf :make([]float64, 0),
+		x :make([]float64, 0),
+		g :make([]float64, 0),
 		rstate : NewRCommState(),
 		lstate : &linminstate{}}
 }
@@ -244,14 +246,13 @@ func minlbfgscreate(n, m int, x *[]float64, state *minlbfgsstate) error {
 	if !(m <= n) {
 		return fmt.Errorf("MinLBFGSCreate: M>N")
 	}
-	if !(len(x) >= n) {
+	if !(len(*x) >= n) {
 		return fmt.Errorf("MinLBFGSCreate: Length(X)<N!")
 	}
-	if res, _ := isfinitevector(x, n); !(res) {
+	if res, _ := utils.IsFiniteVector(*x, n); !(res) {
 		return fmt.Errorf("MinLBFGSCreate: N<1!")
 	}
-	minlbfgscreatex(n, m, x, 0, 0.0, state)
-	return nil
+	return minlbfgscreatex(n, m, x, 0, 0.0, state)
 }
 
 /*************************************************************************
@@ -287,20 +288,19 @@ automatic stopping criterion selection (small EpsX).
 	 Copyright 02.04.2010 by Bochkanov Sergey
 *************************************************************************/
 func minlbfgssetcond(state *minlbfgsstate, epsg, epsf, epsx float64, maxits int) error {
-
-	if !(isfinite(epsg)) {
+	if !(utils.IsFinite(epsg)) {
 		fmt.Errorf("MinLBFGSSetCond: EpsG is not finite number!")
 	}
 	if !(epsg >= 0) {
 		fmt.Errorf("MinLBFGSSetCond: negative EpsG!")
 	}
-	if !(isfinite(epsf)) {
+	if !(utils.IsFinite(epsf)) {
 		fmt.Errorf("MinLBFGSSetCond: EpsF is not finite number!")
 	}
 	if !(epsf >= 0) {
 		fmt.Errorf("MinLBFGSSetCond: negative EpsF!")
 	}
-	if !(isfinite(epsx)) {
+	if !(utils.IsFinite(epsx)) {
 		fmt.Errorf("MinLBFGSSetCond: EpsX is not finite number!")
 	}
 	if !(epsx >= 0) {
@@ -310,7 +310,7 @@ func minlbfgssetcond(state *minlbfgsstate, epsg, epsf, epsx float64, maxits int)
 		fmt.Errorf("MinLBFGSSetCond: negative MaxIts!")
 	}
 
-	if ((epsg == 0 & epsf == 0) & epsx == 0) & maxits == 0 {
+	if ((epsg == 0 && epsf == 0) && epsx == 0) && maxits == 0 {
 		epsx = 1.0E-6
 	}
 	state.epsg = epsg
@@ -356,7 +356,7 @@ overflow) without actually calculating function value at the x+stp*d.
 	 Copyright 02.04.2010 by Bochkanov Sergey
 *************************************************************************/
 func minlbfgssetstpmax(state *minlbfgsstate, stpmax float64) error {
-	if !(isfinite(stpmax)) {
+	if !(utils.IsFinite(stpmax)) {
 		return fmt.Errorf("MinLBFGSSetStpMax: StpMax is not finite!")
 	}
 	if !(stpmax >= 0) {
@@ -390,20 +390,18 @@ INPUT PARAMETERS:
 	 Copyright 30.07.2010 by Bochkanov Sergey
 *************************************************************************/
 func minlbfgsrestartfrom(state *minlbfgsstate, x *[]float64) error {
-	i_ := 0
-
-	if !(len(x) >= state.n) {
+	if !(len(*x) >= state.n) {
 		return fmt.Errorf("MinLBFGSRestartFrom: Length(X)<N!")
 	}
-	if !(isfinitevector(x, state.n)) {
+	if res, err := utils.IsFiniteVector(*x, state.n); !(res) || err != nil {
 		return fmt.Errorf("MinLBFGSRestartFrom: X contains infinite or NaN values!")
 	}
 
-	for i_ = 0; i_ <= state.n - 1; i_++ {
-		state.x[i_] = x[i_]
+	for i := 0; i <= state.n - 1; i++ {
+		state.x[i] = (*x)[i]
 	}
-	state.rstate.ia = [5 + 1]int
-	state.rstate.ra = [1 + 1]float64
+	state.rstate.ia = make([]int, 5 + 1)
+	state.rstate.ra = make([]float64, 1 + 1)
 	state.rstate.stage = -1
 	clearrequestfields(state)
 	return nil
@@ -426,9 +424,7 @@ Accepts additional parameters:
   -- ALGLIB --
 	 Copyright 02.04.2010 by Bochkanov Sergey
 *************************************************************************/
-func minlbfgscreatex(n, m int, x *[]float64, flags int, diffstep float64, state *minlbfgsstate) {
-	i := 0
-
+func minlbfgscreatex(n, m int, x *[]float64, flags int, diffstep float64, state *minlbfgsstate) error {
 	if !(n >= 1) {
 		return fmt.Errorf("MinLBFGS: N too small!")
 	}
@@ -448,24 +444,33 @@ func minlbfgscreatex(n, m int, x *[]float64, flags int, diffstep float64, state 
 	allocatemem := flags % 2 == 0
 	flags = flags / 2;
 	if allocatemem {
-		state.rho = [m]float64
-		state.theta = [m]float64
-		state.yk = [m][n]float64
-		state.sk = [m][n]float64
-		state.d = [n]float64
-		state.x = [n]float64
-		state.s = [n]float64
-		state.g = [n]float64
-		state.work = [n]float64
+		state.rho = make([]float64, m)
+		state.theta = make([]float64, m)
+		state.yk = utils.MakeMatrixFloat64(m, n)
+		state.sk = utils.MakeMatrixFloat64(m, n)
+		state.d = make([]float64, n)
+		state.x = make([]float64, n)
+		state.s = make([]float64, n)
+		state.g = make([]float64, n)
+		state.work = make([]float64, n)
 	}
-	minlbfgssetcond(state, 0, 0, 0, 0)
+	if err := minlbfgssetcond(state, 0, 0, 0, 0); err != nil {
+		return err
+	}
 	minlbfgssetxrep(state, false)
-	minlbfgssetstpmax(state, 0)
-	minlbfgsrestartfrom(state, x)
-	for i = 0; i <= n - 1; i++ {
+	if err := minlbfgssetstpmax(state, 0); err != nil {
+		return err
+	}
+	if err := minlbfgsrestartfrom(state, x); err != nil {
+		return err
+	}
+
+	for i := 0; i <= n - 1; i++ {
 		state.s[i] = 1.0
 	}
 	state.prectype = 0
+
+	return nil
 }
 
 /*************************************************************************
@@ -480,7 +485,7 @@ point. It returns threshold which will be used for trimming.
 	 Copyright 10.05.2011 by Bochkanov Sergey
 *************************************************************************/
 func trimprepare(f float64, threshold *float64) {
-	threshold = 10 * (math.Abs(f) + 1)
+	*threshold = 10 * (math.Abs(f) + 1)
 }
 
 /*************************************************************************
@@ -499,31 +504,30 @@ func linminnormalized(d *[]float64, stp *float64, n int) {
 	//
 	// first, scale D to avoid underflow/overflow durng squaring
 	//
-	mx = 0
 	for i = 0; i <= n - 1; i++ {
-		mx = math.Max(mx, math.Abs(d[i]))
+		mx = math.Max(mx, math.Abs((*d)[i]))
 	}
 	if mx == 0 {
 		return
 	}
 	s = 1 / mx
 	for i_ = 0; i_ <= n - 1; i_++ {
-		d[i_] = s * d[i_]
+		(*d)[i_] = s * (*d)[i_]
 	}
-	stp = stp / s
+	*stp = *stp / s
 
 	//
 	// normalize D
 	//
 	s = 0.0
 	for i_ = 0; i_ <= n - 1; i_++ {
-		s += d[i_] * d[i_]
+		s += (*d)[i_] * (*d)[i_]
 	}
 	s = 1 / math.Sqrt(s)
 	for i_ = 0; i_ <= n - 1; i_++ {
-		d[i_] = s * d[i_]
+		(*d)[i_] = s * (*d)[i_]
 	}
-	stp = stp / s
+	*stp = *stp / s
 }
 
 /*************************************************************************
@@ -556,8 +560,8 @@ func fblscholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper bool
 	v := 0.0
 	i_ := 0
 
-	if len(tmp) < n {
-		tmp = [n]float64
+	if len(*tmp) < n {
+		*tmp = make([]float64, n)
 	}
 
 	//
@@ -568,14 +572,14 @@ func fblscholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper bool
 		// Solve U'*y=b first.
 		//
 		for i = 0; i <= n - 1; i++ {
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 			if i < n - 1 {
-				v = xb[i]
+				v = (*xb)[i]
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					xb[i_] = xb[i_] - v * tmp[i_]
+					(*xb)[i_] = (*xb)[i_] - v * (*tmp)[i_]
 				}
 			}
 		}
@@ -586,15 +590,15 @@ func fblscholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper bool
 		for i = n - 1; i >= 0; i-- {
 			if i < n - 1 {
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				v = 0.0
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					v += tmp[i_] * xb[i_]
+					v += (*tmp)[i_] * (*xb)[i_]
 				}
-				xb[i] = xb[i] - v
+				(*xb)[i] = (*xb)[i] - v
 			}
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 		}
 	}else {
 		//
@@ -603,29 +607,29 @@ func fblscholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper bool
 		for i = 0; i <= n - 1; i++ {
 			if i > 0 {
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				v = 0.0
 				for i_ = 0; i_ <= i - 1; i_++ {
-					v += tmp[i_] * xb[i_]
+					v += (*tmp)[i_] * (*xb)[i_]
 				}
-				xb[i] = xb[i] - v
+				(*xb)[i] = (*xb)[i] - v
 			}
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 		}
 
 		//
 		// Solve L'*x=y then.
 		//
 		for i = n - 1; i >= 0; i-- {
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 			if i > 0 {
-				v = xb[i]
+				v = (*xb)[i]
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				for i_ = 0; i_ <= i - 1; i_++ {
-					xb[i_] = xb[i_] - v * tmp[i_]
+					(*xb)[i_] = (*xb)[i_] - v * (*tmp)[i_]
 				}
 			}
 		}
@@ -645,19 +649,19 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 	stpq := 0.0
 	theta := 0.0
 
-	info = 0
+	*info = 0
 
 	//
 	//     CHECK THE INPUT PARAMETERS FOR ERRORS.
 	//
-	if ((brackt & (stp <= (math.Min(stx, sty)) | stp >= (math.Max(stx, sty)))) | (dx * (stp - stx)) >= 0) | stmax < stmin {
+	if ((*brackt && (*stp <= (math.Min(*stx, *sty)) || *stp >= (math.Max(*stx, *sty)))) || (*dx * (*stp - *stx)) >= 0) || stmax < stmin {
 		return
 	}
 
 	//
 	//     DETERMINE IF THE DERIVATIVES HAVE OPPOSITE SIGN.
 	//
-	sgnd = dp * (dx / math.Abs(dx))
+	sgnd = dp * (*dx / math.Abs(*dx))
 
 	//
 	//     FIRST CASE. A HIGHER FUNCTION VALUE.
@@ -665,27 +669,27 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 	//     TO STX THAN THE QUADRATIC STEP, THE CUBIC STEP IS TAKEN,
 	//     ELSE THE AVERAGE OF THE CUBIC AND QUADRATIC STEPS IS TAKEN.
 	//
-	if fp > fx {
-		info = 1
+	if fp > *fx {
+		*info = 1
 		bound = true
-		theta = 3 * (fx - fp) / (stp - stx) + dx + dp
-		s = math.Max(math.Abs(theta), math.Max(math.Abs(dx), math.Abs(dp)))
+		theta = 3 * (*fx - fp) / (*stp - *stx) + *dx + dp
+		s = math.Max(math.Abs(theta), math.Max(math.Abs(*dx), math.Abs(dp)))
 		_s := theta / s
-		gamma = s * math.Sqrt((_s * _s) - dx / s * (dp / s))
-		if stp < stx {
+		gamma = s * math.Sqrt((_s * _s) - *dx / s * (dp / s))
+		if *stp < *stx {
 			gamma = -gamma
 		}
-		p = gamma - dx + theta
-		q = gamma - dx + gamma + dp
+		p = gamma - *dx + theta
+		q = gamma - *dx + gamma + dp
 		r = p / q
-		stpc = stx + r * (stp - stx)
-		stpq = stx + dx / ((fx - fp) / (stp - stx) + dx) / 2 * (stp - stx)
-		if math.Abs(stpc - stx) < math.Abs(stpq - stx) {
+		stpc = *stx + r * (*stp - *stx)
+		stpq = *stx + *dx / ((*fx - fp) / (*stp - *stx) + *dx) / 2 * (*stp - *stx)
+		if math.Abs(stpc - *stx) < math.Abs(stpq - *stx) {
 			stpf = stpc
 		}else {
 			stpf = stpc + (stpq - stpc) / 2
 		}
-		brackt = true
+		*brackt = true
 	}else {
 		if sgnd < 0 {
 			//
@@ -694,28 +698,28 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 			//     STEP IS CLOSER TO STX THAN THE QUADRATIC (SECANT) STEP,
 			//     THE CUBIC STEP IS TAKEN, ELSE THE QUADRATIC STEP IS TAKEN.
 			//
-			info = 2
+			*info = 2
 			bound = false
-			theta = 3 * (fx - fp) / (stp - stx) + dx + dp
-			s = math.Max(math.Abs(theta), math.Max(math.Abs(dx), math.Abs(dp)))
+			theta = 3 * (*fx - fp) / (*stp - *stx) + *dx + dp
+			s = math.Max(math.Abs(theta), math.Max(math.Abs(*dx), math.Abs(dp)))
 			_s := theta / s
-			gamma = s * math.Sqrt((_s * _s) - dx / s * (dp / s))
-			if stp > stx {
+			gamma = s * math.Sqrt((_s * _s) - *dx / s * (dp / s))
+			if *stp > *stx {
 				gamma = -gamma
 			}
 			p = gamma - dp + theta
-			q = gamma - dp + gamma + dx
+			q = gamma - dp + gamma + *dx
 			r = p / q
-			stpc = stp + r * (stx - stp)
-			stpq = stp + dp / (dp - dx) * (stx - stp)
-			if math.Abs(stpc - stp) > math.Abs(stpq - stp) {
+			stpc = *stp + r * (*stx - *stp)
+			stpq = *stp + dp / (dp - *dx) * (*stx - *stp)
+			if math.Abs(stpc - *stp) > math.Abs(stpq - *stp) {
 				stpf = stpc
 			}else {
 				stpf = stpq
 			}
-			brackt = true
+			*brackt = true
 		}else {
-			if math.Abs(dp) < math.Abs(dx) {
+			if math.Abs(dp) < math.Abs(*dx) {
 				//
 				//     THIRD CASE. A LOWER FUNCTION VALUE, DERIVATIVES OF THE
 				//     SAME SIGN, AND THE MAGNITUDE OF THE DERIVATIVE DECREASES.
@@ -726,43 +730,43 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 				//     COMPUTED AND IF THE MINIMUM IS BRACKETED THEN THE THE STEP
 				//     CLOSEST TO STX IS TAKEN, ELSE THE STEP FARTHEST AWAY IS TAKEN.
 				//
-				info = 3
+				*info = 3
 				bound = true
-				theta = 3 * (fx - fp) / (stp - stx) + dx + dp
-				s = math.Max(math.Abs(theta), math.Max(math.Abs(dx), math.Abs(dp)))
+				theta = 3 * (*fx - fp) / (*stp - *stx) + *dx + dp
+				s = math.Max(math.Abs(theta), math.Max(math.Abs(*dx), math.Abs(dp)))
 
 				//
 				//        THE CASE GAMMA = 0 ONLY ARISES IF THE CUBIC DOES NOT TEND
 				//        TO INFINITY IN THE DIRECTION OF THE STEP.
 				//
 				_s := theta / s
-				gamma = s * math.Sqrt(math.Max(0, (_s * _s) - dx / s * (dp / s)))
-				if stp > stx {
+				gamma = s * math.Sqrt(math.Max(0, (_s * _s) - *dx / s * (dp / s)))
+				if *stp > *stx {
 					gamma = -gamma
 				}
 				p = gamma - dp + theta
-				q = gamma + (dx - dp) + gamma
+				q = gamma + (*dx - dp) + gamma
 				r = p / q
-				if r < 0 & gamma != 0 {
-					stpc = stp + r * (stx - stp)
+				if r < 0 && gamma != 0 {
+					stpc = *stp + r * (*stx - *stp)
 				}else {
-					if stp > stx {
+					if *stp > *stx {
 						stpc = stmax
 					}else {
 						stpc = stmin
 					}
 				}
-				stpq = stp + dp / (dp - dx) * (stx - stp)
-				if brackt {
-					if math.Abs(stp - stpc) < math.Abs(stp - stpq) {
+				stpq = *stp + dp / (dp - *dx) * (*stx - *stp)
+				if *brackt {
+					if math.Abs(*stp - stpc) < math.Abs(*stp - stpq) {
 						stpf = stpc
-					}            else {
+					}else {
 						stpf = stpq
 					}
 				}else {
-					if math.Abs(stp - stpc) > math.Abs(stp - stpq) {
+					if math.Abs(*stp - stpc) > math.Abs(*stp - stpq) {
 						stpf = stpc
-					}            else {
+					}else {
 						stpf = stpq
 					}
 				}
@@ -773,23 +777,23 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 				//     NOT DECREASE. IF THE MINIMUM IS NOT BRACKETED, THE STEP
 				//     IS EITHER STPMIN OR STPMAX, ELSE THE CUBIC STEP IS TAKEN.
 				//
-				info = 4
+				*info = 4
 				bound = false
-				if brackt {
-					theta = 3 * (fp - fy) / (sty - stp) + dy + dp
-					s = math.Max(math.Abs(theta), math.Max(math.Abs(dy), math.Abs(dp)))
+				if *brackt {
+					theta = 3 * (fp - *fy) / (*sty - *stp) + *dy + dp
+					s = math.Max(math.Abs(theta), math.Max(math.Abs(*dy), math.Abs(dp)))
 					_s := theta / s
-					gamma = s * math.Sqrt((_s * _s) - dy / s * (dp / s))
-					if stp > sty {
+					gamma = s * math.Sqrt((_s * _s) - *dy / s * (dp / s))
+					if *stp > *sty {
 						gamma = -gamma
 					}
 					p = gamma - dp + theta
-					q = gamma - dp + gamma + dy
+					q = gamma - dp + gamma + *dy
 					r = p / q
-					stpc = stp + r * (sty - stp)
+					stpc = *stp + r * (*sty - *stp)
 					stpf = stpc
 				}else {
-					if stp > stx {
+					if *stp > *stx {
 						stpf = stmax
 					}else {
 						stpf = stmin
@@ -803,19 +807,19 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 	//     UPDATE THE INTERVAL OF UNCERTAINTY. THIS UPDATE DOES NOT
 	//     DEPEND ON THE NEW STEP OR THE CASE ANALYSIS ABOVE.
 	//
-	if fp > fx {
-		sty = stp
-		fy = fp
-		dy = dp
+	if fp > *fx {
+		*sty = *stp
+		*fy = fp
+		*dy = dp
 	}else {
 		if sgnd < 0.0 {
-			sty = stx
-			fy = fx
-			dy = dx
+			*sty = *stx
+			*fy = *fx
+			*dy = *dx
 		}
-		stx = stp
-		fx = fp
-		dx = dp
+		*stx = *stp
+		*fx = fp
+		*dx = dp
 	}
 
 	//
@@ -823,12 +827,12 @@ func mcstep(stx, fx, dx, sty, fy, dy, stp *float64, fp, dp float64, brackt *bool
 	//
 	stpf = math.Min(stmax, stpf)
 	stpf = math.Max(stmin, stpf)
-	stp = stpf
-	if brackt & bound {
-		if sty > stx {
-			stp = math.Min(stx + 0.66 * (sty - stx), stp)
+	*stp = stpf
+	if *brackt && bound {
+		if *sty > *stx {
+			*stp = math.Min(*stx + 0.66 * (*sty - *stx), *stp)
 		}else {
-			stp = math.Max(stx + 0.66 * (sty - stx), stp)
+			*stp = math.Max(*stx + 0.66 * (*sty - *stx), *stp)
 		}
 	}
 }
@@ -955,39 +959,39 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 	if stpmax == 0 {
 		stpmax = defstpmax
 	}
-	if stp < stpmin {
-		stp = stpmin;
+	if *stp < stpmin {
+		*stp = stpmin;
 	}
-	if stp > stpmax {
-		stp = stpmax
+	if *stp > stpmax {
+		*stp = stpmax
 	}
 
 	//
 	// Main cycle
 	//
 	for {
-		if stage == 0 {
+		if *stage == 0 {
 			//
 			// NEXT
 			//
-			stage = 2
+			*stage = 2
 			continue
 		}
-		if stage == 2 {
+		if *stage == 2 {
 			state.infoc = 1
-			info = 0
+			*info = 0
 
 			//
 			//     CHECK THE INPUT PARAMETERS FOR ERRORS.
 			//
-			if stpmax < stpmin & stpmax > 0 {
-				info = 5
-				stp = 0.0
+			if stpmax < stpmin && stpmax > 0 {
+				*info = 5
+				*stp = 0.0
 				return
 			}
-			if ((((((n <= 0 | stp <= 0) | ftol < 0) | gtol < zero) | xtol < zero) | stpmin < zero) | stpmax < stpmin) | maxfev <= 0 {
-				stage = 0;
-				return;
+			if ((((((n <= 0 || *stp <= 0) || ftol < 0) || gtol < zero) || xtol < zero) || stpmin < zero) || stpmax < stpmin) || maxfev <= 0 {
+				*stage = 0
+				return
 			}
 
 			//
@@ -996,11 +1000,11 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//
 			v = 0.0
 			for i_ = 0; i_ <= n - 1; i_++ {
-				v += g[i_] * s[i_]
+				v += (*g)[i_] * (*s)[i_]
 			}
 			state.dginit = v
 			if state.dginit >= 0 {
-				stage = 0
+				*stage = 0
 				return
 			}
 
@@ -1009,13 +1013,13 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//
 			state.brackt = false
 			state.stage1 = true
-			nfev = 0
-			state.finit = f
+			*nfev = 0
+			state.finit = *f
 			state.dgtest = ftol * state.dginit
 			state.width = stpmax - stpmin
 			state.width1 = state.width / p5
 			for i_ = 0; i_ <= n - 1; i_++ {
-				wa[i_] = x[i_]
+				(*wa)[i_] = (*x)[i_]
 			}
 
 			//
@@ -1037,10 +1041,10 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//
 			// NEXT
 			//
-			stage = 3
+			*stage = 3
 			continue
 		}
-		if stage == 3 {
+		if *stage == 3 {
 			//
 			//     START OF ITERATION.
 			//
@@ -1057,25 +1061,29 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 				}
 			}else {
 				state.stmin = state.stx
-				state.stmax = stp + state.xtrapf * (stp - state.stx)
+				state.stmax = *stp + state.xtrapf * (*stp - state.stx)
 			}
 
 			//
 			//        FORCE THE STEP TO BE WITHIN THE BOUNDS STPMAX AND STPMIN.
 			//
-			if stp > stpmax {
-				stp = stpmax
+			if *stp > stpmax {
+				*stp = stpmax
 			}
-			if stp < stpmin {
-				stp = stpmin
+			if *stp < stpmin {
+				*stp = stpmin
 			}
 
 			//
 			//        IF AN UNUSUAL TERMINATION IS TO OCCUR THEN LET
 			//        STP BE THE LOWEST POINT OBTAINED SO FAR.
 			//
-			if (((state.brackt & (stp <= state.stmin | stp >= state.stmax)) | nfev >= maxfev - 1) | state.infoc == 0) | (state.brackt & (state.stmax - state.stmin) <= (xtol * state.stmax)) {
-				stp = state.stx
+
+			//			(((state.brackt & ((stp)<=(state.stmin) | (stp)>=(state.stmax))) | nfev>=maxfev-1) | state.infoc==0)
+			//			|
+			//			(state.brackt & (state.stmax-state.stmin)<=(xtol*state.stmax))
+			if (((state.brackt && (*stp <= state.stmin || *stp >= state.stmax)) || *nfev >= maxfev - 1) || state.infoc == 0) || (state.brackt && (state.stmax - state.stmin) <= (xtol * state.stmax)) {
+				*stp = state.stx
 			}
 
 			//
@@ -1083,55 +1091,54 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//        AND COMPUTE THE DIRECTIONAL DERIVATIVE.
 			//
 			for i_ = 0; i_ <= n - 1; i_++ {
-				x[i_] = wa[i_]
+				(*x)[i_] = (*wa)[i_]
 			}
 			for i_ = 0; i_ <= n - 1; i_++ {
-				x[i_] = x[i_] + stp * s[i_]
+				(*x)[i_] = (*x)[i_] + *stp * (*s)[i_]
 			}
 
 			//
 			// NEXT
 			//
-			stage = 4
+			*stage = 4
 			return
 		}
-		if stage == 4 {
-			info = 0
-			nfev = nfev + 1
+		if *stage == 4 {
+			*info = 0
+			*nfev += 1
 			v = 0.0
 			for i_ = 0; i_ <= n - 1; i_++ {
-				v += g[i_] * s[i_]
+				v += (*g)[i_] * (*s)[i_]
 			}
 			state.dg = v
-			state.ftest1 = state.finit + stp * state.dgtest
+			state.ftest1 = state.finit + *stp * state.dgtest
 
 			//
 			//        TEST FOR CONVERGENCE.
 			//
-			if (state.brackt & (stp <= state.stmin | stp >= state.stmax)) | state.infoc == 0 {
-				info = 6
+			if (state.brackt && (*stp <= state.stmin || *stp >= state.stmax)) || state.infoc == 0 {
+				*info = 6
 			}
-			if (stp == stpmax & f <= state.ftest1) & state.dg <= state.dgtest {
-				info = 5
+			if (*stp == stpmax && *f <= state.ftest1) && state.dg <= state.dgtest {
+				*info = 5
 			}
-			if stp == stpmin & (f > state.ftest1 | state.dg >= state.dgtest) {
-				info = 4
+			if *stp == stpmin && (*f > state.ftest1 || state.dg >= state.dgtest) {
+				*info = 4
 			}
-			if nfev >= maxfev {
-				info = 3
+			if *nfev >= maxfev {
+				*info = 3
 			}
-			if state.brackt & (state.stmax - state.stmin) <= (xtol * state.stmax) {
-				info = 2
+			if state.brackt && (state.stmax - state.stmin) <= (xtol * state.stmax) {
+				*info = 2
 			}
-			if f <= state.ftest1 & math.Abs(state.dg) <= -(gtol * state.dginit) {
-				info = 1
+			if *f <= state.ftest1 && math.Abs(state.dg) <= -(gtol * state.dginit) {
+				*info = 1
 			}
-
 			//
 			//        CHECK FOR TERMINATION.
 			//
-			if info != 0 {
-				stage = 0
+			if *info != 0 {
+				*stage = 0
 				return
 			}
 
@@ -1139,7 +1146,7 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//        IN THE FIRST STAGE WE SEEK A STEP FOR WHICH THE MODIFIED
 			//        FUNCTION HAS A NONPOSITIVE VALUE AND NONNEGATIVE DERIVATIVE.
 			//
-			if (state.stage1 & f <= state.ftest1) & state.dg >= (math.Min(ftol, gtol) * state.dginit) {
+			if (state.stage1 && *f <= state.ftest1) && state.dg >= (math.Min(ftol, gtol) * state.dginit) {
 				state.stage1 = false
 			}
 
@@ -1150,11 +1157,11 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//        DERIVATIVE, AND IF A LOWER FUNCTION VALUE HAS BEEN
 			//        OBTAINED BUT THE DECREASE IS NOT SUFFICIENT.
 			//
-			if (state.stage1 & f <= state.fx) & f > state.ftest1 {
+			if (state.stage1 && *f <= state.fx) && *f > state.ftest1 {
 				//
 				//           DEFINE THE MODIFIED FUNCTION AND DERIVATIVE VALUES.
 				//
-				state.fm = f - stp * state.dgtest
+				state.fm = *f - *stp * state.dgtest
 				state.fxm = state.fx - state.stx * state.dgtest
 				state.fym = state.fy - state.sty * state.dgtest
 				state.dgm = state.dg - state.dgtest
@@ -1165,7 +1172,7 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 				//           CALL CSTEP TO UPDATE THE INTERVAL OF UNCERTAINTY
 				//           AND TO COMPUTE THE NEW STEP.
 				//
-				mcstep(*state.stx, *state.fxm, *state.dgxm, *state.sty, *state.fym, *state.dgym, *stp, state.fm, state.dgm, *state.brackt, state.stmin, state.stmax, *state.infoc)
+				mcstep(&state.stx, &state.fxm, &state.dgxm, &state.sty, &state.fym, &state.dgym, stp, state.fm, state.dgm, &state.brackt, state.stmin, state.stmax, &state.infoc)
 
 				//
 				//           RESET THE FUNCTION AND GRADIENT VALUES FOR F.
@@ -1179,7 +1186,7 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 				//           CALL MCSTEP TO UPDATE THE INTERVAL OF UNCERTAINTY
 				//           AND TO COMPUTE THE NEW STEP.
 				//
-				mcstep(*state.stx, *state.fx, *state.dgx, *state.sty, *state.fy, *state.dgy, *stp, f, state.dg, *state.brackt, state.stmin, state.stmax, *state.infoc)
+				mcstep(&state.stx, &state.fx, &state.dgx, &state.sty, &state.fy, &state.dgy, stp, *f, state.dg, &state.brackt, state.stmin, state.stmax, &state.infoc)
 			}
 
 			//
@@ -1188,7 +1195,7 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//
 			if state.brackt {
 				if math.Abs(state.sty - state.stx) >= (p66 * state.width1) {
-					stp = state.stx + p5 * (state.sty - state.stx)
+					*stp = state.stx + p5 * (state.sty - state.stx)
 				}
 				state.width1 = state.width
 				state.width = math.Abs(state.sty - state.stx)
@@ -1197,7 +1204,7 @@ func mcsrch(n int, x *[]float64, f *float64, g, s *[]float64, stp *float64, stpm
 			//
 			//  NEXT.
 			//
-			stage = 3
+			*stage = 3
 			continue
 		}
 	}
@@ -1218,11 +1225,10 @@ redefining function in such way that it becomes bounded from above.
 	 Copyright 10.05.2011 by Bochkanov Sergey
 *************************************************************************/
 func trimfunction(f *float64, g *[]float64, n int, threshold float64) {
-	i := 0
-	if f >= threshold {
-		f = threshold
-		for i = 0; i <= n - 1; i++ {
-			g[i] = 0.0
+	if *f >= threshold {
+		*f = threshold
+		for i := 0; i <= n - 1; i++ {
+			(*g)[i] = 0.0
 		}
 	}
 }
@@ -1463,7 +1469,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 		//
 		// Cholesky preconditioner is used
 		//
-		fblscholeskysolve(state.denseh, 1.0, n, true, &state.d, &state.autobuf)
+		fblscholeskysolve(&state.denseh, 1.0, n, true, &state.d, &state.autobuf)
 		state.stp = 1
 	}
 	if state.prectype == 2 {
@@ -1498,7 +1504,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 	// Main cycle: prepare to 1-D line search
 	//
 	state.p = state.k % m
-	state.q = math.Min(state.k, m - 1)
+	state.q = utils.MinInt(state.k, m - 1)
 
 	//
 	// Store X[k], G[k]
@@ -1519,7 +1525,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 		state.stp = 1.0
 	}
 	linminnormalized(&state.d, &state.stp, n)
-	mcsrch(n, *state.x, &state.f, &state.g, state.d, &state.stp, state.stpmax, gtol, &mcinfo, &state.nfev, &state.work, state.lstate, &state.mcstage)
+	mcsrch(n, &state.x, &state.f, &state.g, &state.d, &state.stp, state.stpmax, gtol, &mcinfo, &state.nfev, &state.work, state.lstate, &state.mcstage)
 	lbl_23:
 	if state.mcstage == 0 {
 		goto lbl_24
@@ -1575,7 +1581,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 	state.needf = false
 	lbl_26:
 	trimfunction(&state.f, &state.g, n, state.trimthreshold)
-	mcsrch(n, &state.x, &state.f, &state.g, state.d, &state.stp, state.stpmax, gtol, &mcinfo, &state.nfev, &state.work, state.lstate, &state.mcstage)
+	mcsrch(n, &state.x, &state.f, &state.g, &state.d, &state.stp, state.stpmax, gtol, &mcinfo, &state.nfev, &state.work, state.lstate, &state.mcstage)
 	goto lbl_23
 	lbl_24:
 	if !state.xrep {
@@ -1604,7 +1610,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 	//
 	// Stopping conditions
 	//
-	if state.repiterationscount >= state.maxits & state.maxits > 0 {
+	if state.repiterationscount >= state.maxits && state.maxits > 0 {
 		//
 		// Too many iterations
 		//
@@ -1674,7 +1680,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 		for i_ = 0; i_ <= n - 1; i_++ {
 			vv += state.yk[state.p][i_] * state.yk[state.p][ i_]
 		}
-		if v == 0 | vv == 0 {
+		if v == 0 || vv == 0 {
 			//
 			// Rounding errors make further iterations impossible.
 			//
@@ -1726,7 +1732,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 			//
 			// Cholesky preconditioner is used
 			//
-			fblscholeskysolve(state.denseh, 1, n, true, &state.work, &state.autobuf)
+			fblscholeskysolve(&state.denseh, 1, n, true, &state.work, &state.autobuf)
 		}
 		if state.prectype == 2 {
 			//
@@ -1763,7 +1769,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 		// Next step
 		//
 		state.fold = state.f
-		state.k = state.k + 1
+		state.k += 1
 	}
 	goto lbl_21
 	lbl_22:
@@ -1781,6 +1787,7 @@ func minlbfgsiteration(state *minlbfgsstate) bool {
 	state.rstate.ia[5] = mcinfo
 	state.rstate.ra[0] = v
 	state.rstate.ra[1] = vv
+
 	return true
 }
 
@@ -1811,7 +1818,7 @@ OUTPUT PARAMETERS:
 	 Copyright 02.04.2010 by Bochkanov Sergey
 *************************************************************************/
 func minlbfgsresults(state *minlbfgsstate, x *[]float64, rep *minlbfgsreport) {
-	x = [0]float64
+	*x = make([]float64, 0)
 	minlbfgsresultsbuf(state, x, rep)
 }
 
@@ -1829,11 +1836,11 @@ where array reallocation penalty is too large to be ignored.
 func minlbfgsresultsbuf(state *minlbfgsstate, x *[]float64, rep *minlbfgsreport) {
 	i_ := 0
 
-	if len(x) < state.n {
-		x = [state.n]float64
+	if len(*x) < state.n {
+		*x = make([]float64, state.n)
 	}
 	for i_ = 0; i_ <= state.n - 1; i_++ {
-		x[i_] = state.x[i_]
+		(*x)[i_] = state.x[i_]
 	}
 	rep.iterationscount = state.repiterationscount
 	rep.nfev = state.repnfev
@@ -1907,11 +1914,11 @@ func rmatrixmv(m, n int, a *[][]float64, ia, ja, opa int, x *[]float64, ix int, 
 	}
 	if n == 0 {
 		for i = 0; i <= m - 1; i++ {
-			y[iy + i] = 0
+			(*y)[iy + i] = 0
 		}
 		return
 	}
-	if rmatrixmvf(m, n, a, ia, ja, opa, x, ix, &y, iy) {
+	if rmatrixmvf(m, n, a, ia, ja, opa, x, ix, y, iy) {
 		return
 	}
 	if opa == 0 {
@@ -1922,9 +1929,9 @@ func rmatrixmv(m, n int, a *[][]float64, ia, ja, opa int, x *[]float64, ix int, 
 			i1_ = (ix) - (ja)
 			v = 0.0
 			for i_ = ja; i_ <= ja + n - 1; i_++ {
-				v += a[ia + i][ i_] * x[i_ + i1_]
+				v += (*a)[ia + i][ i_] * (*x)[i_ + i1_]
 			}
-			y[iy + i] = v
+			(*y)[iy + i] = v
 		}
 		return
 	}
@@ -1933,13 +1940,13 @@ func rmatrixmv(m, n int, a *[][]float64, ia, ja, opa int, x *[]float64, ix int, 
 		// y = A^T*x
 		//
 		for i = 0; i <= m - 1; i++ {
-			y[iy + i] = 0
+			(*y)[iy + i] = 0
 		}
 		for i = 0; i <= n - 1; i++ {
-			v = x[ix + i]
+			v = (*x)[ix + i]
 			i1_ = (ja) - (iy)
 			for i_ = iy; i_ <= iy + m - 1; i_++ {
-				y[i_] = y[i_] + v * a[ia + i][ i_ + i1_]
+				(*y)[i_] = (*y)[i_] + v * (*a)[ia + i][ i_ + i1_]
 			}
 		}
 		return
@@ -1959,7 +1966,7 @@ func spdmatrixcholesky2(aaa *[][]float64, offs, n int, isupper bool, tmp *[]floa
 	j := 0
 	ajj := 0.0
 	v := 0.0
-	r := 0, 0
+	r := 0.0
 	i_ := 0
 	i1_ := 0
 
@@ -1984,15 +1991,15 @@ func spdmatrixcholesky2(aaa *[][]float64, offs, n int, isupper bool, tmp *[]floa
 			//
 			v = 0.0
 			for i_ = offs; i_ <= offs + j - 1; i_++ {
-				v += aaa[i_][ offs + j] * aaa[i_][ offs + j]
+				v += (*aaa)[i_][ offs + j] * (*aaa)[i_][ offs + j]
 			}
-			ajj = aaa[offs + j][ offs + j] - v
+			ajj = (*aaa)[offs + j][ offs + j] - v
 			if ajj <= 0 {
-				aaa[offs + j][ offs + j] = ajj
+				(*aaa)[offs + j][ offs + j] = ajj
 				return false
 			}
 			ajj = math.Sqrt(ajj)
-			aaa[offs + j][ offs + j] = ajj
+			(*aaa)[offs + j][ offs + j] = ajj
 
 			//
 			// Compute elements J+1:N-1 of row J.
@@ -2001,17 +2008,17 @@ func spdmatrixcholesky2(aaa *[][]float64, offs, n int, isupper bool, tmp *[]floa
 				if j > 0 {
 					i1_ = (offs) - (0)
 					for i_ = 0; i_ <= j - 1; i_++ {
-						tmp[i_] = -aaa[i_ + i1_][ offs + j]
+						(*tmp)[i_] = -(*aaa)[i_ + i1_][ offs + j]
 					}
-					rmatrixmv(n - j - 1, j, aaa, offs, offs + j + 1, 1, tmp, 0, &tmp, n)
+					rmatrixmv(n - j - 1, j, aaa, offs, offs + j + 1, 1, tmp, 0, tmp, n)
 					i1_ = (n) - (offs + j + 1)
 					for i_ = offs + j + 1; i_ <= offs + n - 1; i_++ {
-						aaa[offs + j][ i_] = aaa[offs + j][ i_] + tmp[i_ + i1_]
+						(*aaa)[offs + j][ i_] = (*aaa)[offs + j][ i_] + (*tmp)[i_ + i1_]
 					}
 				}
 				r = 1 / ajj;
 				for i_ = offs + j + 1; i_ <= offs + n - 1; i_++ {
-					aaa[offs + j][ i_] = r * aaa[offs + j][ i_]
+					(*aaa)[offs + j][ i_] = r * (*aaa)[offs + j][ i_]
 				}
 			}
 		}
@@ -2025,16 +2032,16 @@ func spdmatrixcholesky2(aaa *[][]float64, offs, n int, isupper bool, tmp *[]floa
 			//
 			v = 0.0
 			for i_ = offs; i_ <= offs + j - 1; i_++ {
-				v += aaa[offs + j][ i_] * aaa[offs + j][ i_]
+				v += (*aaa)[offs + j][ i_] * (*aaa)[offs + j][ i_]
 			}
-			ajj = aaa[offs + j][ offs + j] - v;
+			ajj = (*aaa)[offs + j][ offs + j] - v;
 			if ajj <= 0 {
-				aaa[offs + j][ offs + j] = ajj
+				(*aaa)[offs + j][ offs + j] = ajj
 				result = false
 				return result
 			}
 			ajj = math.Sqrt(ajj)
-			aaa[offs + j][ offs + j] = ajj
+			(*aaa)[offs + j][ offs + j] = ajj
 
 			//
 			// Compute elements J+1:N of column J.
@@ -2043,15 +2050,15 @@ func spdmatrixcholesky2(aaa *[][]float64, offs, n int, isupper bool, tmp *[]floa
 				if j > 0 {
 					i1_ = (offs) - (0)
 					for i_ = 0; i_ <= j - 1; i_++ {
-						tmp[i_] = aaa[offs + j][ i_ + i1_]
+						(*tmp)[i_] = (*aaa)[offs + j][ i_ + i1_]
 					}
-					rmatrixmv(n - j - 1, j, aaa, offs + j + 1, offs, 0, tmp, 0, &tmp, n)
+					rmatrixmv(n - j - 1, j, aaa, offs + j + 1, offs, 0, tmp, 0, tmp, n)
 					for i = 0; i <= n - j - 2; i++ {
-						aaa[offs + j + 1 + i][offs + j] = (aaa[offs + j + 1 + i][ offs + j] - tmp[n + i]) / ajj
+						(*aaa)[offs + j + 1 + i][offs + j] = ((*aaa)[offs + j + 1 + i][ offs + j] - (*tmp)[n + i]) / ajj
 					}
 				}else {
 					for i = 0; i <= n - j - 2; i++ {
-						aaa[offs + j + 1 + i][offs + j] = aaa[offs + j + 1 + i][ offs + j] / ajj
+						(*aaa)[offs + j + 1 + i][offs + j] = (*aaa)[offs + j + 1 + i][ offs + j] / ajj
 					}
 				}
 			}
@@ -2081,15 +2088,15 @@ Complex ABLASSplitLength
 func ablasinternalsplitlength(n, nb int, n1, n2 *int) {
 	r := 0
 
-	n1 = 0
-	n2 = 0
+	*n1 = 0
+	*n2 = 0
 
 	if n <= nb {
 		//
 		// Block size, no further splitting
 		//
-		n1 = n
-		n2 = 0
+		*n1 = n
+		*n2 = 0
 	}else {
 		//
 		// Greater than block size
@@ -2098,20 +2105,20 @@ func ablasinternalsplitlength(n, nb int, n1, n2 *int) {
 			//
 			// Split remainder
 			//
-			n2 = n % nb
-			n1 = n - n2
+			*n2 = n % nb
+			*n1 = n - *n2
 		}else {
 			//
 			// Split on block boundaries
 			//
-			n2 = n / 2
-			n1 = n - n2
-			if n1 % nb == 0 {
+			*n2 = n / 2
+			*n1 = n - *n2
+			if *n1 % nb == 0 {
 				return
 			}
-			r = nb - n1 % nb
-			n1 = n1 + r
-			n2 = n2 - r
+			r = nb - *n1 % nb
+			*n1 = *n1 + r
+			*n2 = *n2 - r
 		}
 	}
 }
@@ -2136,8 +2143,8 @@ N1+N2=N, N1>=N2, N2 may be zero
 	 Bochkanov Sergey
 *************************************************************************/
 func ablassplitlength(a *[][]float64, n int, n1, n2 *int) {
-	n1 = 0
-	n2 = 0
+	*n1 = 0
+	*n2 = 0
 
 	if n > ablasblocksize(a) {
 		ablasinternalsplitlength(n, ablasblocksize(a), n1, n2)
@@ -2178,7 +2185,7 @@ func rmatrixlefttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 	//
 	// Try fast code
 	//
-	if rmatrixlefttrsmf(m, n, a, i1, j1, isupper, isunit, optype, &x, i2, j2) {
+	if rmatrixlefttrsmf(m, n, a, i1, j1, isupper, isunit, optype, x, i2, j2) {
 		return
 	}
 
@@ -2195,15 +2202,15 @@ func rmatrixlefttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			//
 			for i = m - 1; i >= 0; i-- {
 				for j = i + 1; j <= m - 1; j++ {
-					vr = a[i1 + i][ j1 + j]
+					vr = (*a)[i1 + i][ j1 + j]
 					for i_ = j2; i_ <= j2 + n - 1; i_++ {
-						x[i2 + i][ i_] = x[i2 + i][ i_] - vr * x[i2 + j][ i_]
+						(*x)[i2 + i][ i_] = (*x)[i2 + i][ i_] - vr * (*x)[i2 + j][ i_]
 					}
 				}
 				if !isunit {
-					vd = 1 / a[i1 + i][ j1 + i]
+					vd = 1 / (*a)[i1 + i][ j1 + i]
 					for i_ = j2; i_ <= j2 + n - 1; i_++ {
-						x[i2 + i][ i_] = vd * x[i2 + i][ i_]
+						(*x)[i2 + i][ i_] = vd * (*x)[i2 + i][ i_]
 					}
 				}
 			}
@@ -2216,16 +2223,16 @@ func rmatrixlefttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			for i = 0; i <= m - 1; i++ {
 				if isunit {
 					vd = 1
-				}            else {
-					vd = 1 / a[i1 + i][j1 + i]
+				}else {
+					vd = 1 / (*a)[i1 + i][j1 + i]
 				}
 				for i_ = j2; i_ <= j2 + n - 1; i_++ {
-					x[i2 + i][ i_] = vd * x[i2 + i][ i_]
+					(*x)[i2 + i][ i_] = vd * (*x)[i2 + i][ i_]
 				}
 				for j = i + 1; j <= m - 1; j++ {
-					vr = a[i1 + i][ j1 + j]
+					vr = (*a)[i1 + i][ j1 + j]
 					for i_ = j2; i_ <= j2 + n - 1; i_++ {
-						x[i2 + j][ i_] = x[i2 + j][ i_] - vr * x[i2 + i][ i_]
+						(*x)[i2 + j][ i_] = (*x)[i2 + j][ i_] - vr * (*x)[i2 + i][ i_]
 					}
 				}
 			}
@@ -2241,18 +2248,18 @@ func rmatrixlefttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			//
 			for i = 0; i <= m - 1; i++ {
 				for j = 0; j <= i - 1; j++ {
-					vr = a[i1 + i][ j1 + j]
+					vr = (*a)[i1 + i][ j1 + j]
 					for i_ = j2; i_ <= j2 + n - 1; i_++ {
-						x[i2 + i][ i_] = x[i2 + i][ i_] - vr * x[i2 + j][ i_]
+						(*x)[i2 + i][ i_] = (*x)[i2 + i][ i_] - vr * (*x)[i2 + j][ i_]
 					}
 				}
 				if isunit {
 					vd = 1
-				}            else {
-					vd = 1 / a[i1 + j][j1 + j]
+				}else {
+					vd = 1 / (*a)[i1 + j][j1 + j]
 				}
 				for i_ = j2; i_ <= j2 + n - 1; i_++ {
-					x[i2 + i][ i_] = vd * x[i2 + i][ i_]
+					(*x)[i2 + i][ i_] = vd * (*x)[i2 + i][ i_]
 				}
 			}
 			return
@@ -2264,16 +2271,16 @@ func rmatrixlefttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			for i = m - 1; i >= 0; i-- {
 				if isunit {
 					vd = 1
-				}            else {
-					vd = 1 / a[i1 + i][j1 + i]
+				}else {
+					vd = 1 / (*a)[i1 + i][j1 + i]
 				}
 				for i_ = j2; i_ <= j2 + n - 1; i_++ {
-					x[i2 + i][ i_] = vd * x[i2 + i][ i_]
+					(*x)[i2 + i][ i_] = vd * (*x)[i2 + i][ i_]
 				}
 				for j = i - 1; j >= 0; j-- {
-					vr = a[i1 + i][ j1 + j]
+					vr = (*a)[i1 + i][ j1 + j]
 					for i_ = j2; i_ <= j2 + n - 1; i_++ {
-						x[i2 + j][ i_] = x[i2 + j][ i_] - vr * x[i2 + i][ i_]
+						(*x)[i2 + j][ i_] = (*x)[i2 + j][ i_] - vr * (*x)[i2 + i][ i_]
 					}
 				}
 			}
@@ -2329,13 +2336,13 @@ func rmatrixgemmk(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea in
 			if beta != 0 {
 				for i = 0; i <= m - 1; i++ {
 					for j = 0; j <= n - 1; j++ {
-						c[ic + i][ jc + j] = beta * c[ic + i][ jc + j]
+						(*c)[ic + i][ jc + j] = beta * (*c)[ic + i][ jc + j]
 					}
 				}
-			}        else {
+			}else {
 				for i = 0; i <= m - 1; i++ {
 					for j = 0; j <= n - 1; j++ {
-						c[ic + i][ jc + j] = 0            }
+						(*c)[ic + i][ jc + j] = 0            }
 				}
 			}
 		}
@@ -2345,57 +2352,57 @@ func rmatrixgemmk(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea in
 	//
 	// General case
 	//
-	if optypea == 0 & optypeb != 0 {
+	if optypea == 0 && optypeb != 0 {
 		//
 		// A*B'
 		//
 		for i = 0; i <= m - 1; i++ {
 			for j = 0; j <= n - 1; j++ {
-				if k == 0 | alpha == 0 {
+				if k == 0 || alpha == 0 {
 					v = 0
-				}        else {
+				}else {
 					i1_ = (jb) - (ja)
 					v = 0.0
 					for i_ = ja; i_ <= ja + k - 1; i_++ {
-						v += a[ia + i][ i_] * b[ib + j][ i_ + i1_]
+						v += (*a)[ia + i][ i_] * (*b)[ib + j][ i_ + i1_]
 					}
 				}
 				if beta == 0 {
-					c[ic + i][ jc + j] = alpha * v
+					(*c)[ic + i][ jc + j] = alpha * v
 				}else {
-					c[ic + i][ jc + j] = beta * c[ic + i][ jc + j] + alpha * v
+					(*c)[ic + i][ jc + j] = beta * (*c)[ic + i][ jc + j] + alpha * v
 				}
 			}
 		}
 		return
 	}
-	if optypea == 0 & optypeb == 0 {
+	if optypea == 0 && optypeb == 0 {
 		//
 		// A*B
 		//
 		for i = 0; i <= m - 1; i++ {
 			if beta != 0 {
 				for i_ = jc; i_ <= jc + n - 1; i_++ {
-					c[ic + i][ i_] = beta * c[ic + i][ i_]
+					(*c)[ic + i][ i_] = beta * (*c)[ic + i][ i_]
 				}
 			}else {
 				for j = 0; j <= n - 1; j++ {
-					c[ic + i][ jc + j] = 0
+					(*c)[ic + i][ jc + j] = 0
 				}
 			}
 			if alpha != 0 {
 				for j = 0; j <= k - 1; j++ {
-					v = alpha * a[ia + i][ja + j]
+					v = alpha * (*a)[ia + i][ja + j]
 					i1_ = (jb) - (jc)
 					for i_ = jc; i_ <= jc + n - 1; i_++ {
-						c[ic + i][ i_] = c[ic + i][ i_] + v * b[ib + j][ i_ + i1_]
+						(*c)[ic + i][ i_] = (*c)[ic + i][ i_] + v * (*b)[ib + j][ i_ + i1_]
 					}
 				}
 			}
 		}
 		return
 	}
-	if optypea != 0 & optypeb != 0 {
+	if optypea != 0 && optypeb != 0 {
 		//
 		// A'*B'
 		//
@@ -2403,46 +2410,46 @@ func rmatrixgemmk(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea in
 			for j = 0; j <= n - 1; j++ {
 				if alpha == 0 {
 					v = 0
-				}        else {
+				}else {
 					i1_ = (jb) - (ia)
 					v = 0.0
 					for i_ = ia; i_ <= ia + k - 1; i_++ {
-						v += a[i_][ ja + i] * b[ib + j][ i_ + i1_]
+						v += (*a)[i_][ ja + i] * (*b)[ib + j][ i_ + i1_]
 					}
 				}
 				if beta == 0 {
-					c[ic + i][ jc + j] = alpha * v
+					(*c)[ic + i][ jc + j] = alpha * v
 				}else {
-					c[ic + i][ jc + j] = beta * c[ic + i][ jc + j] + alpha * v
+					(*c)[ic + i][ jc + j] = beta * (*c)[ic + i][ jc + j] + alpha * v
 				}
 			}
 		}
 		return
 	}
-	if optypea != 0 & optypeb == 0 {
+	if optypea != 0 && optypeb == 0 {
 		//
 		// A'*B
 		//
 		if beta == 0 {
 			for i = 0; i <= m - 1; i++ {
 				for j = 0; j <= n - 1; j++ {
-					c[ic + i][ jc + j] = 0
+					(*c)[ic + i][ jc + j] = 0
 				}
 			}
-		}    else {
+		}else {
 			for i = 0; i <= m - 1; i++ {
 				for i_ = jc; i_ <= jc + n - 1; i_++ {
-					c[ic + i][ i_] = beta * c[ic + i][ i_]
+					(*c)[ic + i][ i_] = beta * (*c)[ic + i][ i_]
 				}
 			}
 		}
 		if alpha != 0 {
 			for j = 0; j <= k - 1; j++ {
 				for i = 0; i <= m - 1; i++ {
-					v = alpha * a[ia + j][ja + i]
+					v = alpha * (*a)[ia + j][ja + i]
 					i1_ = (jb) - (jc)
 					for i_ = jc; i_ <= jc + n - 1; i_++ {
-						c[ic + i][ i_] = c[ic + i][ i_] + v * b[ib + j][ i_ + i1_]
+						(*c)[ic + i][ i_] = (*c)[ic + i][ i_] + v * (*b)[ib + j][ i_ + i1_]
 					}
 				}
 			}
@@ -2465,11 +2472,11 @@ func rmatrixgemm(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea int
 	bs := 0
 
 	bs = ablasblocksize(a)
-	if (m <= bs & n <= bs) & k <= bs {
+	if (m <= bs && n <= bs) && k <= bs {
 		rmatrixgemmk(m, n, k, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 		return
 	}
-	if m >= n & m >= k {
+	if m >= n && m >= k {
 		//
 		// A*B = (A1 A2)^T*B
 		//
@@ -2483,12 +2490,12 @@ func rmatrixgemm(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea int
 		}
 		return
 	}
-	if n >= m & n >= k {
+	if n >= m && n >= k {
 		//
 		// A*B = A*(B1 B2)
 		//
 		ablassplitlength(a, n, &s1, &s2)
-		if ( optypeb == 0 ) {
+		if optypeb == 0 {
 			rmatrixgemm(m, s1, k, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 			rmatrixgemm(m, s2, k, alpha, a, ia, ja, optypea, b, ib, jb + s1, optypeb, beta, c, ic, jc + s1)
 		}else {
@@ -2497,24 +2504,24 @@ func rmatrixgemm(m, n, k int, alpha float64, a *[][]float64, ia, ja, optypea int
 		}
 		return
 	}
-	if k >= m & k >= n {
+	if k >= m && k >= n {
 		//
 		// A*B = (A1 A2)*(B1 B2)^T
 		//
 		ablassplitlength(a, k, &s1, &s2)
-		if optypea == 0 & optypeb == 0 {
+		if optypea == 0 && optypeb == 0 {
 			rmatrixgemm(m, n, s1, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 			rmatrixgemm(m, n, s2, alpha, a, ia, ja + s1, optypea, b, ib + s1, jb, optypeb, 1.0, c, ic, jc)
 		}
-		if optypea == 0 & optypeb != 0 {
+		if optypea == 0 && optypeb != 0 {
 			rmatrixgemm(m, n, s1, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 			rmatrixgemm(m, n, s2, alpha, a, ia, ja + s1, optypea, b, ib, jb + s1, optypeb, 1.0, c, ic, jc)
 		}
-		if optypea != 0 & optypeb == 0 {
+		if optypea != 0 && optypeb == 0 {
 			rmatrixgemm(m, n, s1, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 			rmatrixgemm(m, n, s2, alpha, a, ia + s1, ja, optypea, b, ib + s1, jb, optypeb, 1.0, c, ic, jc)
 		}
-		if optypea != 0 & optypeb != 0 {
+		if optypea != 0 && optypeb != 0 {
 			rmatrixgemm(m, n, s1, alpha, a, ia, ja, optypea, b, ib, jb, optypeb, beta, c, ic, jc)
 			rmatrixgemm(m, n, s2, alpha, a, ia + s1, ja, optypea, b, ib, jb + s1, optypeb, 1.0, c, ic, jc)
 		}
@@ -2537,7 +2544,7 @@ func rmatrixlefttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool,
 	bs := 0
 
 	bs = ablasblocksize(a)
-	if m <= bs & n <= bs {
+	if m <= bs && n <= bs {
 		rmatrixlefttrsm2(m, n, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 		return
 	}
@@ -2553,7 +2560,7 @@ func rmatrixlefttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool,
 		// Split A
 		//
 		ablassplitlength(a, m, &s1, &s2)
-		if isupper & optype == 0 {
+		if isupper && optype == 0 {
 			//
 			//           (A1  A12)-1  ( X1 )
 			// A^-1*X* = (       )   *(    )
@@ -2564,7 +2571,7 @@ func rmatrixlefttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool,
 			rmatrixlefttrsm(s1, n, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 			return
 		}
-		if isupper & optype != 0 {
+		if isupper && optype != 0 {
 			//
 			//          (A1'     )-1 ( X1 )
 			// A^-1*X = (        )  *(    )
@@ -2575,7 +2582,7 @@ func rmatrixlefttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool,
 			rmatrixlefttrsm(s2, n, a, i1 + s1, j1 + s1, isupper, isunit, optype, x, i2 + s1, j2)
 			return
 		}
-		if !isupper & optype == 0 {
+		if !isupper && optype == 0 {
 			//
 			//          (A1     )-1 ( X1 )
 			// A^-1*X = (       )  *(    )
@@ -2586,7 +2593,7 @@ func rmatrixlefttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool,
 			rmatrixlefttrsm(s2, n, a, i1 + s1, j1 + s1, isupper, isunit, optype, x, i2 + s1, j2)
 			return
 		}
-		if !isupper & optype != 0 {
+		if !isupper && optype != 0 {
 			//
 			//          (A1' A21')-1 ( X1 )
 			// A^-1*X = (        )  *(    )
@@ -2626,7 +2633,7 @@ func rmatrixsyrk2(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, 
 	//
 	// Fast exit (nothing to be done)
 	//
-	if (alpha == 0 | k == 0) & beta == 1 {
+	if (alpha == 0 || k == 0) && beta == 1 {
 		return
 	}
 
@@ -2648,23 +2655,23 @@ func rmatrixsyrk2(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, 
 			if isupper {
 				j1 = i
 				j2 = n - 1
-			}        else {
+			}else {
 				j1 = 0
 				j2 = i
 			}
 			for j = j1; j <= j2; j++ {
-				if alpha != 0 & k > 0 {
+				if alpha != 0 && k > 0 {
 					v = 0.0
 					for i_ = ja; i_ <= ja + k - 1; i_++ {
-						v += a[ia + i][ i_] * a[ia + j][ i_]
+						v += (*a)[ia + i][ i_] * (*a)[ia + j][ i_]
 					}
-				}    else {
+				}else {
 					v = 0
 				}
 				if beta == 0 {
-					c[ic + i][ jc + j] = alpha * v
+					(*c)[ic + i][ jc + j] = alpha * v
 				}else {
-					c[ic + i][ jc + j] = beta * c[ic + i][ jc + j] + alpha * v
+					(*c)[ic + i][ jc + j] = beta * (*c)[ic + i][ jc + j] + alpha * v
 				}
 			}
 		}
@@ -2677,17 +2684,17 @@ func rmatrixsyrk2(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, 
 			if isupper {
 				j1 = i
 				j2 = n - 1
-			}        else {
+			}else {
 				j1 = 0
 				j2 = i
 			}
 			if beta == 0 {
 				for j = j1; j <= j2; j++ {
-					c[ic + i][ jc + j] = 0
+					(*c)[ic + i][ jc + j] = 0
 				}
-			}        else {
+			}else {
 				for i_ = jc + j1; i_ <= jc + j2; i_++ {
-					c[ic + i][ i_] = beta * c[ic + i][ i_]
+					(*c)[ic + i][ i_] = beta * (*c)[ic + i][ i_]
 				}
 			}
 		}
@@ -2696,14 +2703,14 @@ func rmatrixsyrk2(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, 
 				if isupper {
 					j1 = j
 					j2 = n - 1
-				}        else {
+				}else {
 					j1 = 0
 					j2 = j
 				}
-				v = alpha * a[ia + i][ ja + j]
+				v = alpha * (*a)[ia + i][ ja + j]
 				i1_ = (ja + j1) - (jc + j1)
 				for i_ = jc + j1; i_ <= jc + j2; i_++ {
-					c[ic + j][ i_] = c[ic + j][ i_] + v * a[ia + i][ i_ + i1_]
+					(*c)[ic + j][ i_] = (*c)[ic + j][ i_] + v * (*a)[ia + i][ i_ + i1_]
 				}
 			}
 		}
@@ -2726,11 +2733,11 @@ func rmatrixsyrk(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, b
 	bs := 0
 
 	bs = ablasblocksize(a)
-	if n <= bs & k <= bs {
+	if n <= bs && k <= bs {
 		rmatrixsyrk2(n, k, alpha, a, ia, ja, optypea, beta, c, ic, jc, isupper)
 		return
 	}
-	if ( k >= n ) {
+	if k >= n {
 		//
 		// Split K
 		//
@@ -2747,25 +2754,25 @@ func rmatrixsyrk(n, k int, alpha float64, a *[][]float64, ia, ja, optypea int, b
 		// Split N
 		//
 		ablassplitlength(a, n, &s1, &s2)
-		if optypea == 0 & isupper {
+		if optypea == 0 && isupper {
 			rmatrixsyrk(s1, k, alpha, a, ia, ja, optypea, beta, c, ic, jc, isupper)
 			rmatrixgemm(s1, s2, k, alpha, a, ia, ja, 0, a, ia + s1, ja, 1, beta, c, ic, jc + s1)
 			rmatrixsyrk(s2, k, alpha, a, ia + s1, ja, optypea, beta, c, ic + s1, jc + s1, isupper)
 			return
 		}
-		if optypea == 0 & !isupper {
+		if optypea == 0 && !isupper {
 			rmatrixsyrk(s1, k, alpha, a, ia, ja, optypea, beta, c, ic, jc, isupper)
 			rmatrixgemm(s2, s1, k, alpha, a, ia + s1, ja, 0, a, ia, ja, 1, beta, c, ic + s1, jc)
 			rmatrixsyrk(s2, k, alpha, a, ia + s1, ja, optypea, beta, c, ic + s1, jc + s1, isupper)
 			return
 		}
-		if optypea != 0 & isupper {
+		if optypea != 0 && isupper {
 			rmatrixsyrk(s1, k, alpha, a, ia, ja, optypea, beta, c, ic, jc, isupper)
 			rmatrixgemm(s1, s2, k, alpha, a, ia, ja, 1, a, ia, ja + s1, 0, beta, c, ic, jc + s1)
 			rmatrixsyrk(s2, k, alpha, a, ia, ja + s1, optypea, beta, c, ic + s1, jc + s1, isupper)
 			return
 		}
-		if optypea != 0 & !isupper {
+		if optypea != 0 && !isupper {
 			rmatrixsyrk(s1, k, alpha, a, ia, ja, optypea, beta, c, ic, jc, isupper)
 			rmatrixgemm(s2, s1, k, alpha, a, ia, ja + s1, 1, a, ia, ja, 0, beta, c, ic + s1, jc)
 			rmatrixsyrk(s2, k, alpha, a, ia, ja + s1, optypea, beta, c, ic + s1, jc + s1, isupper)
@@ -2781,7 +2788,7 @@ Fast kernel
 	 19.01.2010
 	 Bochkanov Sergey
 *************************************************************************/
-func rmatrixrighttrsmf(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool, optype int, x *[][]float64, i2, j2 int) {
+func rmatrixrighttrsmf(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool, optype int, x *[][]float64, i2, j2 int) bool {
 	return false
 }
 
@@ -2829,15 +2836,15 @@ func rmatrixrighttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit boo
 				for j = 0; j <= n - 1; j++ {
 					if isunit {
 						vd = 1
-					}            else {
-						vd = a[i1 + j][j1 + j]
+					}else {
+						vd = (*a)[i1 + j][j1 + j]
 					}
-					x[i2 + i][ j2 + j] = x[i2 + i][ j2 + j] / vd
+					(*x)[i2 + i][ j2 + j] = (*x)[i2 + i][ j2 + j] / vd
 					if j < n - 1 {
-						vr = x[i2 + i][ j2 + j];
+						vr = (*x)[i2 + i][ j2 + j];
 						i1_ = (j1 + j + 1) - (j2 + j + 1);
 						for i_ = j2 + j + 1; i_ <= j2 + n - 1; i_++ {
-							x[i2 + i][ i_] = x[i2 + i][ i_] - vr * a[i1 + j][ i_ + i1_]
+							(*x)[i2 + i][ i_] = (*x)[i2 + i][ i_] - vr * (*a)[i1 + j][ i_ + i1_]
 						}
 					}
 				}
@@ -2856,13 +2863,13 @@ func rmatrixrighttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit boo
 						i1_ = (j1 + j + 1) - (j2 + j + 1)
 						vr = 0.0
 						for i_ = j2 + j + 1; i_ <= j2 + n - 1; i_++ {
-							vr += x[i2 + i][ i_] * a[i1 + j][ i_ + i1_]
+							vr += (*x)[i2 + i][ i_] * (*a)[i1 + j][ i_ + i1_]
 						}
 					}
 					if !isunit {
-						vd = a[i1 + j][ j1 + j]
+						vd = (*a)[i1 + j][ j1 + j]
 					}
-					x[i2 + i][ j2 + j] = (x[i2 + i][ j2 + j] - vr) / vd
+					(*x)[i2 + i][ j2 + j] = ((*x)[i2 + i][ j2 + j] - vr) / vd
 				}
 			}
 			return
@@ -2879,15 +2886,15 @@ func rmatrixrighttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit boo
 				for j = n - 1; j >= 0; j-- {
 					if isunit {
 						vd = 1
-					}            else {
-						vd = a[i1 + j][ j1 + j]
+					}else {
+						vd = (*a)[i1 + j][ j1 + j]
 					}
-					x[i2 + i][ j2 + j] = x[i2 + i][ j2 + j] / vd
+					(*x)[i2 + i][ j2 + j] = (*x)[i2 + i][ j2 + j] / vd
 					if j > 0 {
-						vr = x[i2 + i][ j2 + j]
+						vr = (*x)[i2 + i][ j2 + j]
 						i1_ = (j1) - (j2)
 						for i_ = j2; i_ <= j2 + j - 1; i_++ {
-							x[i2 + i][ i_] = x[i2 + i][ i_] - vr * a[i1 + j][ i_ + i1_]
+							(*x)[i2 + i][ i_] = (*x)[i2 + i][ i_] - vr * (*a)[i1 + j][ i_ + i1_]
 						}
 					}
 				}
@@ -2906,13 +2913,13 @@ func rmatrixrighttrsm2(m, n int, a *[][]float64, i1, j1 int, isupper, isunit boo
 						i1_ = (j1) - (j2)
 						vr = 0.0
 						for i_ = j2; i_ <= j2 + j - 1; i_++ {
-							vr += x[i2 + i][ i_] * a[i1 + j][ i_ + i1_]
+							vr += (*x)[i2 + i][ i_] * (*a)[i1 + j][ i_ + i1_]
 						}
 					}
 					if !isunit {
-						vd = a[i1 + j][ j1 + j]
+						vd = (*a)[i1 + j][ j1 + j]
 					}
-					x[i2 + i][ j2 + j] = (x[i2 + i][ j2 + j] - vr) / vd
+					(*x)[i2 + i][ j2 + j] = ((*x)[i2 + i][ j2 + j] - vr) / vd
 				}
 			}
 			return
@@ -2935,7 +2942,7 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 	bs := 0
 
 	bs = ablasblocksize(a)
-	if m <= bs & n <= bs {
+	if m <= bs && n <= bs {
 		rmatrixrighttrsm2(m, n, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 		return
 	}
@@ -2943,7 +2950,8 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 		//
 		// Split X: X*A = (X1 X2)^T*A
 		//
-		ablassplitlength(a, m, &s1, &2)
+		_i := 2
+		ablassplitlength(a, m, &s1, &_i)
 		rmatrixrighttrsm(s1, n, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 		rmatrixrighttrsm(s2, n, a, i1, j1, isupper, isunit, optype, x, i2 + s1, j2)
 	}else {
@@ -2957,7 +2965,7 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 		// IsUpper/OpType combinations
 		//
 		ablassplitlength(a, n, &s1, &s2)
-		if isupper & optype == 0 {
+		if isupper && optype == 0 {
 			//
 			//                  (A1  A12)-1
 			// X*A^-1 = (X1 X2)*(       )
@@ -2968,7 +2976,7 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			rmatrixrighttrsm(m, s2, a, i1 + s1, j1 + s1, isupper, isunit, optype, x, i2, j2 + s1)
 			return
 		}
-		if isupper & optype != 0 {
+		if isupper && optype != 0 {
 			//
 			//                  (A1'     )-1
 			// X*A^-1 = (X1 X2)*(        )
@@ -2979,7 +2987,7 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			rmatrixrighttrsm(m, s1, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 			return
 		}
-		if !isupper & optype == 0 {
+		if !isupper && optype == 0 {
 			//
 			//                  (A1     )-1
 			// X*A^-1 = (X1 X2)*(       )
@@ -2990,7 +2998,7 @@ func rmatrixrighttrsm(m, n int, a *[][]float64, i1, j1 int, isupper, isunit bool
 			rmatrixrighttrsm(m, s1, a, i1, j1, isupper, isunit, optype, x, i2, j2)
 			return
 		}
-		if !isupper & optype != 0 {
+		if !isupper && optype != 0 {
 			//
 			//                  (A1' A21')-1
 			// X*A^-1 = (X1 X2)*(        )
@@ -3041,16 +3049,16 @@ func spdmatrixcholeskyrec(a *[][]float64, offs, n int, isupper bool, tmp *[]floa
 	//
 	// Prepare buffer
 	//
-	if len(tmp) < 2 * n {
-		tmp = [2 * n]float64
+	if len(*tmp) < 2 * n {
+		*tmp = make([]float64, 2 * n)
 	}
 
 	//
 	// special cases
 	//
 	if n == 1 {
-		if a[offs][ offs] > 0 {
-			a[offs][ offs] = math.Sqrt(a[offs][ offs])
+		if (*a)[offs][ offs] > 0 {
+			(*a)[offs][ offs] = math.Sqrt((*a)[offs][ offs])
 			result = true
 		}else {
 			result = false
@@ -3117,11 +3125,10 @@ RESULT:
 	 Bochkanov Sergey
 *************************************************************************/
 func spdmatrixcholesky(a *[][]float64, n int, isupper bool) bool {
-	tmp := [0]float64
-
 	if n < 1 {
 		return false
 	}
+	tmp := make([]float64, 0)
 	return spdmatrixcholeskyrec(a, 0, n, isupper, &tmp);
 }
 
@@ -3134,32 +3141,6 @@ be greater than underflow.
 *************************************************************************/
 func rcondthreshold() float64 {
 	return math.Sqrt(math.Sqrt(minrealnumber))
-}
-
-func abscomplex(x float64, y float64) float64 {
-
-	xabs := math.Abs(x);
-	yabs := math.Abs(y);
-	w := 0.0
-	if xabs > yabs {
-		w = xabs
-	} else {
-		w = yabs
-	}
-	v := 0.0
-	if xabs < yabs {
-		v = xabs
-	} else {
-		v = yabs
-	}
-	if v == 0 {
-		return w
-	}else {
-		{
-			t := v / w
-			return w * math.Sqrt(1 + t * t)
-		}
-	}
 }
 
 /*************************************************************************
@@ -3193,16 +3174,16 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	posj = n + 2
 	posjlast = n + 3
 	posjump = n + 4
-	if kase == 0 {
-		v = [n + 4]float64
-		x = [n + 1]float64
-		isgn = [n + 5]int
+	if *kase == 0 {
+		*v = make([]float64, n + 4)
+		*x = make([]float64, n + 1)
+		*isgn = make([]int, n + 5)
 		t = 1 / float64(n)
 		for i = 1; i <= n; i++ {
-			x[i] = t
+			(*x)[i] = t
 		}
-		kase = 1
-		isgn[posjump] = 1
+		*kase = 1
+		(*isgn)[posjump] = 1
 		return
 	}
 
@@ -3210,27 +3191,27 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	//     ................ ENTRY   (JUMP = 1)
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY A*X.
 	//
-	if isgn[posjump] == 1 {
+	if (*isgn)[posjump] == 1 {
 		if n == 1 {
-			v[1] = x[1]
-			est = math.Abs(v[1])
-			kase = 0
+			(*v)[1] = (*x)[1]
+			*est = math.Abs((*v)[1])
+			*kase = 0
 			return
 		}
-		est = 0
+		*est = 0
 		for i = 1; i <= n; i++ {
-			est = est + math.Abs(x[i])
+			*est = *est + math.Abs((*x)[i])
 		}
 		for i = 1; i <= n; i++ {
-			if x[i] >= 0 {
-				x[i] = 1
-			}        else {
-				x[i] = -1
+			if (*x)[i] >= 0 {
+				(*x)[i] = 1
+			}else {
+				(*x)[i] = -1
 			}
-			isgn[i] = sign(x[i])
+			(*isgn)[i] = utils.SignInt((*x)[i])
 		}
-		kase = 2
-		isgn[posjump] = 2
+		*kase = 2
+		(*isgn)[posjump] = 2
 		return
 	}
 
@@ -3238,24 +3219,24 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	//     ................ ENTRY   (JUMP = 2)
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY TRANDPOSE(A)*X.
 	//
-	if isgn[posjump] == 2 {
-		isgn[posj] = 1
+	if (*isgn)[posjump] == 2 {
+		(*isgn)[posj] = 1
 		for i = 2; i <= n; i++ {
-			if math.Abs(x[i]) > math.Abs(x[isgn[posj]]) {
-				isgn[posj] = i
+			if math.Abs((*x)[i]) > math.Abs((*x)[(*isgn)[posj]]) {
+				(*isgn)[posj] = i
 			}
 		}
-		isgn[positer] = 2
+		(*isgn)[positer] = 2
 
 		//
 		// MAIN LOOP - ITERATIONS 2,3,...,ITMAX.
 		//
 		for i = 1; i <= n; i++ {
-			x[i] = 0
+			(*x)[i] = 0
 		}
-		x[isgn[posj]] = 1
-		kase = 1
-		isgn[posjump] = 3
+		(*x)[(*isgn)[posj]] = 1
+		*kase = 1
+		(*isgn)[posjump] = 3
 		return
 	}
 
@@ -3263,18 +3244,18 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	//     ................ ENTRY   (JUMP = 3)
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 	//
-	if isgn[posjump] == 3 {
+	if (*isgn)[posjump] == 3 {
 		for i_ = 1; i_ <= n; i_++ {
-			v[i_] = x[i_]
+			(*v)[i_] = (*x)[i_]
 		}
-		v[posestold] = est
-		est = 0
+		(*v)[posestold] = *est
+		*est = 0
 		for i = 1; i <= n; i++ {
-			est = est + math.Abs(v[i])
+			*est = *est + math.Abs((*v)[i])
 		}
 		flg = false
 		for i = 1; i <= n; i++ {
-			if (x[i] >= 0 & isgn[i] < 0) | (x[i] < 0 & isgn[i] >= 0) {
+			if ((*x)[i] >= 0 && (*isgn)[i] < 0) || ((*x)[i] < 0 && (*isgn)[i] >= 0) {
 				flg = true
 			}
 		}
@@ -3283,27 +3264,27 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 		// REPEATED SIGN VECTOR DETECTED, HENCE ALGORITHM HAS CONVERGED.
 		// OR MAY BE CYCLING.
 		//
-		if !flg | est <= v[posestold] {
-			v[posaltsgn] = 1
+		if !flg || *est <= (*v)[posestold] {
+			(*v)[posaltsgn] = 1
 			for i = 1; i <= n; i++ {
-				x[i] = v[posaltsgn] * (1 + float64(i - 1) / float64(n - 1))
-				v[posaltsgn] = -v[posaltsgn]
+				(*x)[i] = (*v)[posaltsgn] * (1 + float64(i - 1) / float64(n - 1))
+				(*v)[posaltsgn] = -(*v)[posaltsgn]
 			}
-			kase = 1
-			isgn[posjump] = 5
+			*kase = 1
+			(*isgn)[posjump] = 5
 			return
 		}
 		for i = 1; i <= n; i++ {
-			if x[i] >= 0 {
-				x[i] = 1
-				isgn[i] = 1
-			}    else {
-				x[i] = -1
-				isgn[i] = -1
+			if (*x)[i] >= 0 {
+				(*x)[i] = 1
+				(*isgn)[i] = 1
+			}else {
+				(*x)[i] = -1
+				(*isgn)[i] = -1
 			}
 		}
-		kase = 2
-		isgn[posjump] = 4
+		*kase = 2
+		(*isgn)[posjump] = 4
 		return
 	}
 
@@ -3311,35 +3292,35 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	//     ................ ENTRY   (JUMP = 4)
 	//     X HAS BEEN OVERWRITTEN BY TRANDPOSE(A)*X.
 	//
-	if isgn[posjump] == 4 {
-		isgn[posjlast] = isgn[posj]
-		isgn[posj] = 1
+	if (*isgn)[posjump] == 4 {
+		(*isgn)[posjlast] = (*isgn)[posj]
+		(*isgn)[posj] = 1
 		for i = 2; i <= n; i++ {
-			if math.Abs(x[i]) > math.Abs(x[isgn[posj]]) {
-				isgn[posj] = i
+			if math.Abs((*x)[i]) > math.Abs((*x)[(*isgn)[posj]]) {
+				(*isgn)[posj] = i
 			}
 		}
-		if x[isgn[posjlast]] != math.Abs(x[isgn[posj]]) & isgn[positer] < itmax {
-			isgn[positer] = isgn[positer] + 1
+		if (*x)[(*isgn)[posjlast]] != math.Abs((*x)[(*isgn)[posj]]) && (*isgn)[positer] < itmax {
+			(*isgn)[positer] = (*isgn)[positer] + 1
 			for i = 1; i <= n; i++ {
-				x[i] = 0
+				(*x)[i] = 0
 			}
-			x[isgn[posj]] = 1
-			kase = 1
-			isgn[posjump] = 3
+			(*x)[(*isgn)[posj]] = 1
+			*kase = 1
+			(*isgn)[posjump] = 3
 			return
 		}
 
 		//
 		// ITERATION COMPLETE.  FINAL STAGE.
 		//
-		v[posaltsgn] = 1
+		(*v)[posaltsgn] = 1
 		for i = 1; i <= n; i++ {
-			x[i] = v[posaltsgn] * (1 + float64(i - 1) / float64(n - 1))
-			v[posaltsgn] = -v[posaltsgn]
+			(*x)[i] = (*v)[posaltsgn] * (1 + float64(i - 1) / float64(n - 1))
+			(*v)[posaltsgn] = -(*v)[posaltsgn]
 		}
-		kase = 1
-		isgn[posjump] = 5
+		*kase = 1
+		(*isgn)[posjump] = 5
 		return
 	}
 
@@ -3347,19 +3328,19 @@ func rmatrixestimatenorm(n int, v, x*[]float64, isgn *[]int, est *float64, kase 
 	//     ................ ENTRY   (JUMP = 5)
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 	//
-	if isgn[posjump] == 5 {
-		v[postemp] = 0
+	if (*isgn)[posjump] == 5 {
+		(*v)[postemp] = 0
 		for i = 1; i <= n; i++ {
-			v[postemp] = v[postemp] + math.Abs(x[i])
+			(*v)[postemp] = (*v)[postemp] + math.Abs((*x)[i])
 		}
-		v[postemp] = 2 * v[postemp] / (3 * n)
-		if v[postemp] > est {
+		(*v)[postemp] = 2 * (*v)[postemp] / float64(3 * n)
+		if (*v)[postemp] > *est {
 			for i_ = 1; i_ <= n; i_++ {
-				v[i_] = x[i_]
+				(*v)[i_] = (*x)[i_]
 			}
-			est = v[postemp]
+			*est = (*v)[postemp]
 		}
-		kase = 0
+		*kase = 0
 		return
 	}
 }
@@ -3386,18 +3367,17 @@ Parameters:
 	 26.01.2009
 	 Bochkanov Sergey
 *************************************************************************/
-func cbasicsolveandupdate(alpha ComplexType, beta ComplexType, lnmax, bnorm, maxgrowth float64, xnorm *float64, x *ComplexType) bool {
+func cbasicsolveandupdate(alpha complex128, beta complex128, lnmax, bnorm, maxgrowth float64, xnorm *float64, x *complex128) bool {
 	var result bool
 	v := 0.0
 
-	x = 0
+	*x = 0
 
 	result = false
 	if alpha == 0 {
 		return result
 	}
 	if beta != 0 {
-
 		//
 		// alpha*x[i]=beta
 		//
@@ -3405,19 +3385,19 @@ func cbasicsolveandupdate(alpha ComplexType, beta ComplexType, lnmax, bnorm, max
 		if v > lnmax {
 			return result
 		}
-		x = beta / alpha
+		*x = beta / alpha
 	}else {
 		//
 		// alpha*x[i]=0
 		//
-		x = 0
+		*x = 0
 	}
 
 	//
 	// update NrmX, test growth limit
 	//
-	xnorm = math.Max(xnorm, cmplx.Abs(x))
-	if xnorm > maxgrowth * bnorm {
+	*xnorm = math.Max(*xnorm, cmplx.Abs(*x))
+	if *xnorm > maxgrowth * bnorm {
 		return result
 	}
 	result = true
@@ -3431,7 +3411,7 @@ Real implementation of CMatrixScaledTRSafeSolve
 	 21.01.2010
 	 Bochkanov Sergey
 *************************************************************************/
-func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, isupper bool, trans int, isunit bool, maxgrowth float64) bool {
+func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, isupper bool, trans int, isunit bool, maxgrowth float64) (bool, error) {
 	var result bool
 	lnmax := 0.0
 	nrmb := 0.0
@@ -3441,14 +3421,14 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 	var beta complex128 = 0
 	vr := 0.0
 	var cx complex128 = 0
-	tmp := [0]float64
+	tmp := make([]float64, 0)
 	i_ := 0
 
 	if !(n > 0) {
-		return fmt.Errorf("RMatrixTRSafeSolve: incorrect N!")
+		return false, fmt.Errorf("RMatrixTRSafeSolve: incorrect N!")
 	}
-	if !(trans == 0 | trans == 1) {
-		return fmt.Errorf("RMatrixTRSafeSolve: incorrect Trans!")
+	if !(trans == 0 || trans == 1) {
+		return false, fmt.Errorf("RMatrixTRSafeSolve: incorrect Trans!")
 	}
 
 	result = true
@@ -3458,7 +3438,7 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 	// Quick return if possible
 	//
 	if n <= 0 {
-		return result
+		return result, nil
 	}
 
 	//
@@ -3466,16 +3446,16 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 	//
 	nrmb = 0
 	for i = 0; i <= n - 1; i++ {
-		nrmb = math.Max(nrmb, math.Abs(x[i]))
+		nrmb = math.Max(nrmb, math.Abs((*x)[i]))
 	}
 	nrmx = 0
 
 	//
 	// Solve
 	//
-	tmp = [n]float64
+	tmp = make([]float64, n)
 	result = true
-	if isupper & trans == 0 {
+	if isupper && trans == 0 {
 		//
 		// U*x = b
 		//
@@ -3484,35 +3464,35 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			// Task is reduced to alpha*x[i] = beta
 			//
 			if isunit {
-				alpha = sa
-			}        else {
-				alpha = a[i][ i] * sa
+				alpha = complex(sa, 0)
+			}else {
+				alpha = complex((*a)[i][ i] * sa, 0)
 			}
 			if i < n - 1 {
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sa * a[i][ i_]
+					tmp[i_] = sa * (*a)[i][ i_]
 				}
 				vr = 0.0
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					vr += tmp[i_] * x[i_]
+					vr += tmp[i_] * (*x)[i_]
 				}
-				beta = x[i] - vr
-			}        else {
-				beta = x[i]
+				beta = complex((*x)[i] - vr, 0)
+			}else {
+				beta = complex((*x)[i], 0)
 			}
 
 			//
 			// solve alpha*x[i] = beta
 			//
-			result = cbasicsolveandupdate(complex(alpha, 0.0), complex(beta, 0.0), lnmax, nrmb, maxgrowth, &nrmx, &cx)
+			result = cbasicsolveandupdate(alpha, beta, lnmax, nrmb, maxgrowth, &nrmx, &cx)
 			if !result {
-				return result
+				return result, nil
 			}
-			x[i] = real(cx)
+			(*x)[i] = real(cx)
 		}
-		return result
+		return result, nil
 	}
-	if !isupper & trans == 0 {
+	if !isupper && trans == 0 {
 		//
 		// L*x = b
 		//
@@ -3521,35 +3501,35 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			// Task is reduced to alpha*x[i] = beta
 			//
 			if isunit {
-				alpha = sa
-			}        else {
-				alpha = a[i][ i] * sa
+				alpha = complex(sa, 0)
+			}else {
+				alpha = complex((*a)[i][ i] * sa, 0)
 			}
 			if i > 0 {
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sa * a[i][ i_]
+					tmp[i_] = sa * (*a)[i][ i_]
 				}
 				vr = 0.0
 				for i_ = 0; i_ <= i - 1; i_++ {
-					vr += tmp[i_] * x[i_]
+					vr += tmp[i_] * (*x)[i_]
 				}
-				beta = x[i] - vr
-			}    else {
-				beta = x[i]
+				beta = complex((*x)[i] - vr, 0)
+			}else {
+				beta = complex((*x)[i], 0)
 			}
 
 			//
 			// solve alpha*x[i] = beta
 			//
-			result = cbasicsolveandupdate(complex(alpha, 0.0), complex(beta, 0.0), lnmax, nrmb, maxgrowth, &nrmx, &cx)
+			result = cbasicsolveandupdate(alpha, beta, lnmax, nrmb, maxgrowth, &nrmx, &cx)
 			if !result {
-				return result
+				return result, nil
 			}
-			x[i] = real(cx)
+			(*x)[i] = real(cx)
 		}
-		return result
+		return result, nil
 	}
-	if isupper & trans == 1 {
+	if isupper && trans == 1 {
 		//
 		// U^T*x = b
 		//
@@ -3558,20 +3538,20 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			// Task is reduced to alpha*x[i] = beta
 			//
 			if isunit {
-				alpha = sa
+				alpha = complex(sa, 0)
 			}else {
-				alpha = a[i][ i] * sa
+				alpha = complex((*a)[i][ i] * sa, 0)
 			}
-			beta = x[i]
+			beta = complex((*x)[i], 0)
 
 			//
 			// solve alpha*x[i] = beta
 			//
-			result = cbasicsolveandupdate(complex(alpha, 0.0), complex(beta, 0.0), lnmax, nrmb, maxgrowth, &nrmx, &cx)
+			result = cbasicsolveandupdate(alpha, beta, lnmax, nrmb, maxgrowth, &nrmx, &cx)
 			if !result {
-				return result
+				return result, nil
 			}
-			x[i] = real(cx)
+			(*x)[i] = real(cx)
 
 			//
 			// update the rest of right part
@@ -3579,16 +3559,16 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			if i < n - 1 {
 				vr = real(cx)
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sa * a[i][ i_]
+					tmp[i_] = sa * (*a)[i][ i_]
 				}
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					x[i_] = x[i_] - vr * tmp[i_];
+					(*x)[i_] = (*x)[i_] - vr * tmp[i_]
 				}
 			}
 		}
-		return result
+		return result, nil
 	}
-	if !isupper & trans == 1 {
+	if !isupper && trans == 1 {
 		//
 		// L^T*x = b
 		//
@@ -3597,20 +3577,20 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			// Task is reduced to alpha*x[i] = beta
 			//
 			if isunit {
-				alpha = sa
+				alpha = complex(sa, 0)
 			}else {
-				alpha = a[i][ i] * sa
+				alpha = complex((*a)[i][ i] * sa, 0)
 			}
-			beta = x[i]
+			beta = complex((*x)[i], 0)
 
 			//
 			// solve alpha*x[i] = beta
 			//
-			result = cbasicsolveandupdate(complex(alpha, 0.0), complex(beta, 0.0), lnmax, nrmb, maxgrowth, &nrmx, &cx)
+			result = cbasicsolveandupdate(alpha, beta, lnmax, nrmb, maxgrowth, &nrmx, &cx)
 			if !result {
-				return result
+				return result, nil
 			}
-			x[i] = real(cx)
+			(*x)[i] = real(cx)
 
 			//
 			// update the rest of right part
@@ -3618,17 +3598,17 @@ func rmatrixscaledtrsafesolve(a *[][]float64, sa float64, n int, x *[]float64, i
 			if i > 0 {
 				vr = real(cx)
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sa * a[i][i_]
+					tmp[i_] = sa * (*a)[i][i_]
 				}
 				for i_ = 0; i_ <= i - 1; i_++ {
-					x[i_] = x[i_] - vr * tmp[i_]
+					(*x)[i_] = (*x)[i_] - vr * tmp[i_]
 				}
 			}
 		}
-		return result
+		return result, nil
 	}
 	result = false
-	return result
+	return result, nil
 }
 
 /*************************************************************************
@@ -3639,32 +3619,30 @@ Internal subroutine for condition number estimation
 	 Courant Institute, Argonne National Lab, and Rice University
 	 February 29, 1992
 *************************************************************************/
-func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprovided bool, anorm float64, rc *float64) {
+func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprovided bool, anorm float64, rc *float64) error {
 	i := 0
 	j := 0
 	kase := 0
 	ainvnm := 0.0
-	ex := [0]float64
-	ev := [0]float64
-	tmp := [0]float64
-	iwork := [0]int
+	ex := make([]float64, 0)
+	ev := make([]float64, 0)
+	iwork := make([]int, 0)
 	sa := 0.0
 	v := 0.0
 	maxgrowth := 0.0
 	i_ := 0
 	i1_ := 0
 
-	rc = 0
 
 	if !(n >= 1) {
 		return fmt.Errorf("ALGLIB: assertion failed")
 	}
-	tmp = [n]float64
+	tmp := make([]float64, n)
 
 	//
 	// RC=0 if something happens
 	//
-	rc = 0
+	*rc = 0
 
 	//
 	// prepare parameters for triangular solver
@@ -3674,13 +3652,13 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 	if isupper {
 		for i = 0; i <= n - 1; i++ {
 			for j = i; j <= n - 1; j++ {
-				sa = math.Max(sa, abscomplex(cha[i][j], 0.0))
+				sa = math.Max(sa, utils.AbsComplex((*cha)[i][j], 0.0))
 			}
 		}
 	}else {
 		for i = 0; i <= n - 1; i++ {
 			for j = 0; j <= i; j++ {
-				sa = math.Max(sa, abscomplex(cha[i][j], 0.0))
+				sa = math.Max(sa, utils.AbsComplex((*cha)[i][j], 0.0))
 			}
 		}
 	}
@@ -3708,7 +3686,7 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 					i1_ = (i) - (i - 1)
 					v = 0.0
 					for i_ = i - 1; i_ <= n - 1; i_++ {
-						v += cha[i - 1][ i_] * ex[i_ + i1_]
+						v += (*cha)[i - 1][ i_] * ex[i_ + i1_]
 					}
 					ex[i] = v
 				}
@@ -3725,7 +3703,7 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 				for i = 0; i <= n - 1; i++ {
 					v = ex[i + 1]
 					for i_ = i; i_ <= n - 1; i_++ {
-						tmp[i_] = tmp[i_] + v * cha[i][ i_]
+						tmp[i_] = tmp[i_] + v * (*cha)[i][ i_]
 					}
 				}
 				i1_ = (0) - (1)
@@ -3735,7 +3713,7 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 				for i_ = 1; i_ <= n; i_++ {
 					ex[i_] = sa * ex[i_]
 				}
-			}    else {
+			}else {
 
 				//
 				// Multiply by L'
@@ -3746,7 +3724,7 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 				for i = 0; i <= n - 1; i++ {
 					v = ex[i + 1]
 					for i_ = 0; i_ <= i; i_++ {
-						tmp[i_] = tmp[i_] + v * cha[i][ i_]
+						tmp[i_] = tmp[i_] + v * (*cha)[i][ i_]
 					}
 				}
 				i1_ = (0) - (1)
@@ -3764,7 +3742,7 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 					i1_ = (1) - (0)
 					v = 0.0
 					for i_ = 0; i_ <= i - 1; i_++ {
-						v += cha[i - 1][ i_] * ex[i_ + i1_]
+						v += (*cha)[i - 1][ i_] * ex[i_ + i1_]
 					}
 					ex[i] = v
 				}
@@ -3779,11 +3757,11 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 	// Quick return if possible
 	//
 	if anorm == 0 {
-		return
+		return nil
 	}
 	if n == 1 {
-		rc = 1
-		return
+		*rc = 1
+		return nil
 	}
 
 	//
@@ -3802,30 +3780,30 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 			//
 			// Multiply by inv(U').
 			//
-			if !rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 1, false, maxgrowth) {
-				return
+			if res, err := rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 1, false, maxgrowth); !res || err != nil {
+				return err
 			}
 
 			//
 			// Multiply by inv(U).
 			//
-			if !rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 0, false, maxgrowth) {
-				return
+			if res, err := rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 0, false, maxgrowth); !res || err != nil {
+				return err
 			}
 		}else {
 
 			//
 			// Multiply by inv(L).
 			//
-			if !rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 0, false, maxgrowth) {
-				return
+			if res, err := rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 0, false, maxgrowth); !res || err != nil {
+				return err
 			}
 
 			//
 			// Multiply by inv(L').
 			//
-			if !rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 1, false, maxgrowth) {
-				return;
+			if res, err := rmatrixscaledtrsafesolve(cha, sa, n, &ex, isupper, 1, false, maxgrowth); !res || err != nil {
+				return err
 			}
 		}
 		for i = n - 1; i >= 0; i-- {
@@ -3838,11 +3816,12 @@ func spdmatrixrcondcholeskyinternal(cha *[][]float64, n int, isupper, isnormprov
 	//
 	if ainvnm != 0 {
 		v = 1 / ainvnm
-		rc = v / anorm
-		if rc < rcondthreshold() {
-			rc = 0
+		*rc = v / anorm
+		if *rc < rcondthreshold() {
+			*rc = 0
 		}
 	}
+	return nil
 }
 
 /*************************************************************************
@@ -3897,14 +3876,14 @@ func spdbasiccholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper 
 		// Solve U'*y=b first.
 		//
 		for i = 0; i <= n - 1; i++ {
-			xb[i] = xb[i] / (sqrtscalea * cha[i][i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][i])
 			if i < n - 1 {
-				v = xb[i]
+				v = (*xb)[i]
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][i_]
 				}
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					xb[i_] = xb[i_] - v * tmp[i_]
+					(*xb)[i_] = (*xb)[i_] - v * (*tmp)[i_]
 				}
 			}
 		}
@@ -3915,15 +3894,15 @@ func spdbasiccholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper 
 		for i = n - 1; i >= 0; i-- {
 			if i < n - 1 {
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				v = 0.0
 				for i_ = i + 1; i_ <= n - 1; i_++ {
-					v += tmp[i_] * xb[i_]
+					v += (*tmp)[i_] * (*xb)[i_]
 				}
-				xb[i] = xb[i] - v
+				(*xb)[i] = (*xb)[i] - v
 			}
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 		}
 	}else {
 		//
@@ -3932,29 +3911,29 @@ func spdbasiccholeskysolve(cha *[][]float64, sqrtscalea float64, n int, isupper 
 		for i = 0; i <= n - 1; i++ {
 			if i > 0 {
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				v = 0.0
 				for i_ = 0; i_ <= i - 1; i_++ {
-					v += tmp[i_] * xb[i_]
+					v += (*tmp)[i_] * (*xb)[i_]
 				}
-				xb[i] = xb[i] - v
+				(*xb)[i] = (*xb)[i] - v
 			}
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 		}
 
 		//
 		// Solve L'*x=y then.
 		//
 		for i = n - 1; i >= 0; i-- {
-			xb[i] = xb[i] / (sqrtscalea * cha[i][ i])
+			(*xb)[i] = (*xb)[i] / (sqrtscalea * (*cha)[i][ i])
 			if i > 0 {
-				v = xb[i]
+				v = (*xb)[i]
 				for i_ = 0; i_ <= i - 1; i_++ {
-					tmp[i_] = sqrtscalea * cha[i][ i_]
+					(*tmp)[i_] = sqrtscalea * (*cha)[i][ i_]
 				}
 				for i_ = 0; i_ <= i - 1; i_++ {
-					xb[i_] = xb[i_] - v * tmp[i_]
+					(*xb)[i_] = (*xb)[i_] - v * (*tmp)[i_]
 				}
 			}
 		}
@@ -3967,23 +3946,19 @@ Internal Cholesky solver
   -- ALGLIB --
 	 Copyright 27.01.2010 by Bochkanov Sergey
 *************************************************************************/
-func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int, isupper bool, a *[][]float64, havea bool, b *[][]float64, m int, info *int, rep *densesolverreport, x *[][]float64) {
+func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int, isupper bool, a *[][]float64, havea bool, b *[][]float64, m int, info *int, rep *densesolverreport, x *[][]float64) error {
 	i := 0
 	j := 0
 	k := 0
-	xc := [0]float64
 	//	y := [0]float64
-	bc := [0]float64
 	//	xa := [0]float64
 	//	xb := [0]float64
-	tx := [0]float64
 	v := 0.0
 	mxb := 0.0
 	scaleright := 0.0
 	i_ := 0
 
-	info = 0
-	x = [0][ 0]float64
+	*info = 0
 
 	if !(sqrtscalea > 0) {
 		return fmt.Errorf("ALGLIB: assertion failed")
@@ -3992,15 +3967,15 @@ func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int,
 	//
 	// prepare: check inputs, allocate space...
 	//
-	if n <= 0 | m <= 0 {
-		info = -1
-		return
+	if n <= 0 || m <= 0 {
+		*info = -1
+		return nil
 	}
-	x = [n][ m]float64
+	*x = utils.MakeMatrixFloat64(n, m)
 	//	y = [n]float64
-	xc = [n]float64
-	bc = [n]float64
-	tx = [n + 1]float64
+	xc := make([]float64, n)
+	bc := make([]float64, n)
+	tx := make([]float64, n + 1)
 	//	xa = [n + 1]float64
 	//	xb = [n + 1]float64
 
@@ -4012,15 +3987,15 @@ func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int,
 	if rep.r1 < rcondthreshold() {
 		for i = 0; i <= n - 1; i++ {
 			for j = 0; j <= m - 1; j++ {
-				x[i][ j] = 0
+				(*x)[i][ j] = 0
 			}
 		}
 		rep.r1 = 0
 		rep.rinf = 0
-		info = -3
-		return
+		*info = -3
+		return nil
 	}
-	info = 1
+	*info = 1
 
 	//
 	// solve
@@ -4030,7 +4005,7 @@ func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int,
 		// copy B to contiguous storage
 		//
 		for i_ = 0; i_ <= n - 1; i_++ {
-			bc[i_] = b[i_][ k]
+			bc[i_] = (*b)[i_][ k]
 		}
 
 		//
@@ -4064,9 +4039,10 @@ func spdmatrixcholeskysolveinternal(cha *[][]float64, sqrtscalea float64, n int,
 		//
 		v = (sqrtscalea * sqrtscalea) * mxb
 		for i_ = 0; i_ <= n - 1; i_++ {
-			x[i_][ k] = v * xc[i_]
+			(*x)[i_][ k] = v * xc[i_]
 		}
 	}
+	return nil
 }
 
 /*************************************************************************
@@ -4101,21 +4077,21 @@ OUTPUT PARAMETERS
 	 Copyright 27.01.2010 by Bochkanov Sergey
 *************************************************************************/
 func spdmatrixcholeskysolvem(cha *[][]float64, n int, isupper bool, b *[][]float64, m int, info *int, rep *densesolverreport, x *[][]float64) {
-	emptya := [0][0]float64
+	emptya := utils.MakeMatrixFloat64(0, 0)
 	sqrtscalea := 0.0
 	i := 0
 	j := 0
 	j1 := 0
 	j2 := 0
 
-	info = 0
-	x = [0][ 0]float64
+	*info = 0
+	*x = utils.MakeMatrixFloat64(0, 0)
 
 	//
 	// prepare: check inputs, allocate space...
 	//
-	if n <= 0 | m <= 0 {
-		info = -1
+	if n <= 0 || m <= 0 {
+		*info = -1
 		return
 	}
 
@@ -4129,19 +4105,19 @@ func spdmatrixcholeskysolvem(cha *[][]float64, n int, isupper bool, b *[][]float
 		if isupper {
 			j1 = i
 			j2 = n - 1
-		}    else {
+		}else {
 			j1 = 0
 			j2 = i
 		}
 		for j = j1; j <= j2; j++ {
-			sqrtscalea = math.Max(sqrtscalea, math.Abs(cha[i][ j]))
+			sqrtscalea = math.Max(sqrtscalea, math.Abs((*cha)[i][ j]))
 		}
 	}
 	if sqrtscalea == 0 {
 		sqrtscalea = 1
 	}
 	sqrtscalea = 1 / sqrtscalea
-	spdmatrixcholeskysolveinternal(cha, sqrtscalea, n, isupper, emptya, false, b, m, info, rep, x)
+	spdmatrixcholeskysolveinternal(cha, sqrtscalea, n, isupper, &emptya, false, b, m, info, rep, x)
 }
 
 /*************************************************************************
@@ -4175,25 +4151,21 @@ OUTPUT PARAMETERS
 	 Copyright 27.01.2010 by Bochkanov Sergey
 *************************************************************************/
 func spdmatrixcholeskysolve(cha *[][]float64, n int, isupper bool, b *[]float64, info *int, rep *densesolverreport, x *[]float64) {
-	bm := [0][0]float64
-	xm := [0][0]float64
+	xm := utils.MakeMatrixFloat64(0, 0)
 	i_ := 0
-
-	info = 0
-	x = [0]float64
-
+	*info = 0
 	if n <= 0 {
-		info = -1;
+		*info = -1;
 		return;
 	}
-	bm = [n][1]float64
+	bm := utils.MakeMatrixFloat64(n, 1)
 	for i_ = 0; i_ <= n - 1; i_++ {
-		bm[i_][ 0] = b[i_]
+		bm[i_][ 0] = (*b)[i_]
 	}
-	spdmatrixcholeskysolvem(cha, n, isupper, bm, 1, info, rep, &xm)
-	x = [n]float64
+	spdmatrixcholeskysolvem(cha, n, isupper, &bm, 1, info, rep, &xm)
+	*x = make([]float64, n)
 	for i_ = 0; i_ <= n - 1; i_++ {
-		x[i_] = xm[i_][0]
+		(*x)[i_] = xm[i_][0]
 	}
 }
 
@@ -4204,14 +4176,14 @@ X[0..N-1,0..N-1] are finite
   -- ALGLIB --
 	 Copyright 18.06.2010 by Bochkanov Sergey
 *************************************************************************/
-func isfinitertrmatrix(x *[][]float64, n int, isupper bool) bool {
+func isfinitertrmatrix(x *[][]float64, n int, isupper bool) (bool, error) {
 	i := 0
 	j1 := 0
 	j2 := 0
 	j := 0
 
 	if !(n >= 0) {
-		return fmt.Errorf("APSERVIsFiniteRTRMatrix: internal error (N<0)")
+		return false, fmt.Errorf("APSERVIsFiniteRTRMatrix: internal error (N<0)")
 	}
 	for i = 0; i <= n - 1; i++ {
 		if isupper {
@@ -4222,12 +4194,12 @@ func isfinitertrmatrix(x *[][]float64, n int, isupper bool) bool {
 			j2 = i
 		}
 		for j = j1; j <= j2; j++ {
-			if !isfinite(x[i][j]) {
-				return false
+			if !utils.IsFinite((*x)[i][j]) {
+				return false, nil
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 /*************************************************************************
@@ -4239,9 +4211,8 @@ Internal subroutine for condition number estimation
 	 February 29, 1992
 *************************************************************************/
 func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool, anorm float64, rc *float64) {
-	ex := [0]float64
-	ev := [0]float64
-	iwork := [0]int
+	ex := make([]float64, 0)
+	ev := make([]float64, 0)
 	i := 0
 	j := 0
 	kase := 0
@@ -4252,13 +4223,10 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 	maxgrowth := 0.0
 	s := 0.0
 
-	rc = 0
-
-
 	//
 	// RC=0 if something happens
 	//
-	rc = 0
+	*rc = 0
 
 	//
 	// init
@@ -4271,7 +4239,7 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 	//	mupper := true
 	//	mtra0ns := true
 	//	munit := true
-	iwork = [n + 1]int
+	iwork := make([]int, n + 1)
 	//	tmp := [n]float64
 
 	//
@@ -4288,12 +4256,12 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 			j2 = i - 1
 		}
 		for j = j1; j <= j2; j++ {
-			s = math.Max(s, math.Abs(a[i][ j]))
+			s = math.Max(s, math.Abs((*a)[i][ j]))
 		}
 		if isunit {
 			s = math.Max(s, 1)
 		}else {
-			s = math.Max(s, math.Abs(a[i][ i]))
+			s = math.Max(s, math.Abs((*a)[i][ i]))
 		}
 	}
 	if s == 0 {
@@ -4314,7 +4282,7 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 		return
 	}
 	if n == 1 {
-		rc = 1
+		*rc = 1
 		return
 	}
 
@@ -4343,14 +4311,14 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 			//
 			// multiply by inv(A)
 			//
-			if !rmatrixscaledtrsafesolve(a, s, n, &ex, isupper, 0, isunit, maxgrowth) {
+			if res, _ := rmatrixscaledtrsafesolve(a, s, n, &ex, isupper, 0, isunit, maxgrowth); !res {
 				return
 			}
 		}else {
 			//
 			// multiply by inv(A')
 			//
-			if !rmatrixscaledtrsafesolve(a, s, n, &ex, isupper, 1, isunit, maxgrowth) {
+			if res, _ := rmatrixscaledtrsafesolve(a, s, n, &ex, isupper, 1, isunit, maxgrowth); !res {
 				return
 			}
 		}
@@ -4367,10 +4335,10 @@ func rmatrixrcondtrinternal(a *[][]float64, n int, isupper, isunit, onenorm bool
 	// Compute the estimate of the reciprocal condition number.
 	//
 	if ainvnm != 0 {
-		rc = 1 / ainvnm
-		rc = rc / anorm
-		if rc < rcondthreshold() {
-			rc = 0
+		*rc = 1 / ainvnm
+		*rc = *rc / anorm
+		if *rc < rcondthreshold() {
+			*rc = 0
 		}
 	}
 }
@@ -4394,20 +4362,19 @@ NOTE:
 	if k(A) is very large, then matrix is  assumed  degenerate,  k(A)=INF,
 	0.0 is returned in such cases.
 *************************************************************************/
-func rmatrixtrrcond1(a *[][]float64, n int, isupper, isunit bool) float64 {
+func rmatrixtrrcond1(a *[][]float64, n int, isupper, isunit bool) (float64, error) {
 	result := 0.0
 	i := 0
 	j := 0
 	nrm := 0.0
 	//	pivots := [0]int
-	t := [0]float64
 	j1 := 0
 	j2 := 0
 
 	if !(n >= 1) {
-		return fmt.Errorf("RMatrixTRRCond1: N<1!")
+		return 0, fmt.Errorf("RMatrixTRRCond1: N<1!")
 	}
-	t = [n]float64
+	t := make([]float64, n)
 	for i = 0; i <= n - 1; i++ {
 		t[i] = 0
 	}
@@ -4415,17 +4382,17 @@ func rmatrixtrrcond1(a *[][]float64, n int, isupper, isunit bool) float64 {
 		if isupper {
 			j1 = i + 1
 			j2 = n - 1
-		}    else {
+		}else {
 			j1 = 0
 			j2 = i - 1
 		}
 		for j = j1; j <= j2; j++ {
-			t[j] = t[j] + math.Abs(a[i][ j])
+			t[j] = t[j] + math.Abs((*a)[i][ j])
 		}
 		if isunit {
 			t[i] = t[i] + 1
-		}    else {
-			t[i] = t[i] + math.Abs(a[i][ i])
+		}else {
+			t[i] = t[i] + math.Abs((*a)[i][ i])
 		}
 	}
 	nrm = 0
@@ -4433,7 +4400,7 @@ func rmatrixtrrcond1(a *[][]float64, n int, isupper, isunit bool) float64 {
 		nrm = math.Max(nrm, t[i])
 	}
 	rmatrixrcondtrinternal(a, n, isupper, isunit, true, nrm, &result)
-	return result
+	return result, nil
 }
 
 /*************************************************************************
@@ -4455,7 +4422,7 @@ NOTE:
 	if k(A) is very large, then matrix is  assumed  degenerate,  k(A)=INF,
 	0.0 is returned in such cases.
 *************************************************************************/
-func rmatrixtrrcondinf(a *[][]float64, n int, isupper, isunit bool) float64 {
+func rmatrixtrrcondinf(a *[][]float64, n int, isupper, isunit bool) (float64, error) {
 	result := 0.0
 	i := 0
 	j := 0
@@ -4466,7 +4433,7 @@ func rmatrixtrrcondinf(a *[][]float64, n int, isupper, isunit bool) float64 {
 	j2 := 0
 
 	if !(n >= 1) {
-		return fmt.Errorf("RMatrixTRRCondInf: N<1!")
+		return 0, fmt.Errorf("RMatrixTRRCondInf: N<1!")
 	}
 
 	nrm = 0
@@ -4474,24 +4441,24 @@ func rmatrixtrrcondinf(a *[][]float64, n int, isupper, isunit bool) float64 {
 		if isupper {
 			j1 = i + 1
 			j2 = n - 1
-		} else {
+		}else {
 			j1 = 0
 			j2 = i - 1
 		}
 		v = 0
 		for j = j1; j <= j2; j++ {
-			v = v + math.Abs(a[i][ j])
+			v = v + math.Abs((*a)[i][ j])
 		}
 		if isunit {
 			v = v + 1
-		} else {
-			v = v + math.Abs(a[i][ i])
+		}else {
+			v = v + math.Abs((*a)[i][ i])
 		}
 		nrm = math.Max(nrm, v)
 	}
 	rmatrixrcondtrinternal(a, n, isupper, isunit, false, nrm, &v)
 	result = v
-	return result
+	return result, nil
 }
 
 /*************************************************************************
@@ -4514,7 +4481,7 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 	i1_ := 0
 
 	if n < 1 {
-		info = -1
+		*info = -1
 		return
 	}
 
@@ -4528,13 +4495,13 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 			//
 			for j = 0; j <= n - 1; j++ {
 				if !isunit {
-					if a[offs + j][ offs + j] == 0 {
-						info = -3
+					if (*a)[offs + j][ offs + j] == 0 {
+						*info = -3
 						return
 					}
-					a[offs + j][ offs + j] = 1 / a[offs + j][offs + j]
-					ajj = -a[offs + j][ offs + j]
-				}            else {
+					(*a)[offs + j][ offs + j] = 1 / (*a)[offs + j][offs + j]
+					ajj = -(*a)[offs + j][ offs + j]
+				}else {
 					ajj = -1
 				}
 
@@ -4544,26 +4511,26 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 				if j > 0 {
 					i1_ = (offs + 0) - (0)
 					for i_ = 0; i_ <= j - 1; i_++ {
-						tmp[i_] = a[i_ + i1_][ offs + j]
+						(*tmp)[i_] = (*a)[i_ + i1_][ offs + j]
 					}
 					for i = 0; i <= j - 1; i++ {
 						if i < j - 1 {
 							i1_ = (i + 1) - (offs + i + 1)
 							v = 0.0
 							for i_ = offs + i + 1; i_ <= offs + j - 1; i_++ {
-								v += a[offs + i][ i_] * tmp[i_ + i1_]
+								v += (*a)[offs + i][ i_] * (*tmp)[i_ + i1_]
 							}
-						}                else {
+						}else {
 							v = 0
 						}
 						if !isunit {
-							a[offs + i][ offs + j] = v + a[offs + i][ offs + i] * tmp[i]
+							(*a)[offs + i][ offs + j] = v + (*a)[offs + i][ offs + i] * (*tmp)[i]
 						}else {
-							a[offs + i][ offs + j] = v + tmp[i]
+							(*a)[offs + i][ offs + j] = v + (*tmp)[i]
 						}
 					}
 					for i_ = offs + 0; i_ <= offs + j - 1; i_++ {
-						a[i][ offs + j] = ajj * a[i_][ offs + j]
+						(*a)[i][ offs + j] = ajj * (*a)[i_][ offs + j]
 					}
 				}
 			}
@@ -4573,13 +4540,13 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 			//
 			for j = n - 1; j >= 0; j-- {
 				if !isunit {
-					if a[offs + j][ offs + j] == 0 {
-						info = -3
+					if (*a)[offs + j][ offs + j] == 0 {
+						*info = -3
 						return
 					}
-					a[offs + j][ offs + j] = 1 / a[offs + j][offs + j]
-					ajj = -a[offs + j][ offs + j]
-				}            else {
+					(*a)[offs + j][ offs + j] = 1 / (*a)[offs + j][offs + j]
+					ajj = -(*a)[offs + j][ offs + j]
+				}else {
 					ajj = -1
 				}
 				if j < n - 1 {
@@ -4588,26 +4555,26 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 					//
 					i1_ = (offs + j + 1) - (j + 1)
 					for i_ = j + 1; i_ <= n - 1; i_++ {
-						tmp[i_] = a[i_ + i1_][ offs + j]
+						(*tmp)[i_] = (*a)[i_ + i1_][ offs + j]
 					}
 					for i = j + 1; i <= n - 1; i++ {
 						if i > j + 1 {
 							i1_ = (j + 1) - (offs + j + 1)
 							v = 0.0
 							for i_ = offs + j + 1; i_ <= offs + i - 1; i_++ {
-								v += a[offs + i][ i_] * tmp[i_ + i1_]
+								v += (*a)[offs + i][ i_] * (*tmp)[i_ + i1_]
 							}
-						}                    else {
+						}else {
 							v = 0
 						}
 						if !isunit {
-							a[offs + i][ offs + j] = v + a[offs + i][ offs + i] * tmp[i]
-						}                else {
-							a[offs + i][ offs + j] = v + tmp[i]
+							(*a)[offs + i][ offs + j] = v + (*a)[offs + i][ offs + i] * (*tmp)[i]
+						}else {
+							(*a)[offs + i][ offs + j] = v + (*tmp)[i]
 						}
 					}
 					for i_ = offs + j + 1; i_ <= offs + n - 1; i_++ {
-						a[i_][ offs + j] = ajj * a[i_][ offs + j]
+						(*a)[i_][ offs + j] = ajj * (*a)[i_][ offs + j]
 					}
 				}
 			}
@@ -4623,7 +4590,7 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 		if isupper {
 			for i = 0; i <= n1 - 1; i++ {
 				for i_ = offs + n1; i_ <= offs + n - 1; i_++ {
-					a[offs + i][ i_] = -1 * a[offs + i][ i_]
+					(*a)[offs + i][ i_] = -1 * (*a)[offs + i][ i_]
 				}
 			}
 			rmatrixlefttrsm(n1, n2, a, offs, offs, isupper, isunit, 0, a, offs, offs + n1)
@@ -4631,15 +4598,15 @@ func rmatrixtrinverserec(a *[][]float64, offs, n int, isupper, isunit bool, tmp 
 		}else {
 			for i = 0; i <= n2 - 1; i++ {
 				for i_ = offs; i_ <= offs + n1 - 1; i_++ {
-					a[offs + n1 + i][ i_] = -1 * a[offs + n1 + i][ i_]
+					(*a)[offs + n1 + i][ i_] = -1 * (*a)[offs + n1 + i][ i_]
 				}
 			}
 			rmatrixrighttrsm(n2, n1, a, offs, offs, isupper, isunit, 0, a, offs + n1, offs)
 			rmatrixlefttrsm(n2, n1, a, offs + n1, offs + n1, isupper, isunit, 0, a, offs + n1, offs)
 		}
-		rmatrixtrinverserec(a, offs + n1, n2, isupper, isunit, &tmp, info, rep)
+		rmatrixtrinverserec(a, offs + n1, n2, isupper, isunit, tmp, info, rep)
 	}
-	rmatrixtrinverserec(a, offs, n1, isupper, isunit, &tmp, info, rep)
+	rmatrixtrinverserec(a, offs, n1, isupper, isunit, tmp, info, rep)
 }
 
 /*************************************************************************
@@ -4680,49 +4647,54 @@ Output parameters:
   -- ALGLIB --
 	 Copyright 05.02.2010 by Bochkanov Sergey
 *************************************************************************/
-func rmatrixtrinverse(a *[][]float64, n int, isupper, isunit bool, info *int, rep *matinvreport) {
+func rmatrixtrinverse(a *[][]float64, n int, isupper, isunit bool, info *int, rep *matinvreport) error {
 	i := 0
 	j := 0
-	tmp := [0]float64
 
-	info = 0
+	*info = 0
 
 	if !(n > 0) {
 		return fmt.Errorf("RMatrixTRInverse: N<=0!")
 	}
-	if !(len(a) >= n ) {
+	if !(len(*a) >= n ) {
 		return fmt.Errorf("RMatrixTRInverse: cols(A)<N!")
 	}
-	if !(len(a[0]) >= n) {
+	if !(len((*a)[0]) >= n) {
 		return fmt.Errorf("RMatrixTRInverse: rows(A)<N!")
 	}
-	if !(isfinitertrmatrix(a, n, isupper)) {
+	if res, _ := isfinitertrmatrix(a, n, isupper); !res {
 		return fmt.Errorf("RMatrixTRInverse: A contains infinite or NaN values!")
 	}
-	info = 1
+	*info = 1
 
 	//
 	// calculate condition numbers
 	//
-	rep.r1 = rmatrixtrrcond1(a, n, isupper, isunit)
-	rep.rinf = rmatrixtrrcondinf(a, n, isupper, isunit)
-	if rep.r1 < rcondthreshold() | rep.rinf < rcondthreshold() {
+	var err error
+	if rep.r1, err = rmatrixtrrcond1(a, n, isupper, isunit); err != nil {
+		return err
+	}
+	if rep.rinf, err = rmatrixtrrcondinf(a, n, isupper, isunit); err != nil {
+		return err
+	}
+	if rep.r1 < rcondthreshold() || rep.rinf < rcondthreshold() {
 		for i = 0; i <= n - 1; i++ {
 			for j = 0; j <= n - 1; j++ {
-				a[i][ j] = 0
+				(*a)[i][ j] = 0
 			}
 		}
 		rep.r1 = 0
 		rep.rinf = 0
-		info = -3
-		return
+		*info = -3
+		return nil
 	}
 
 	//
 	// Invert
 	//
-	tmp = [n]float64
+	tmp := make([]float64, n)
 	rmatrixtrinverserec(a, 0, n, isupper, isunit, &tmp, info, rep)
+	return nil
 }
 
 /*************************************************************************
@@ -4767,10 +4739,10 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	enew := 0.0
 	xnorm2 := 0.0
 	stepnorm := 0.0
-	g := [0]float64
+	g := make([]float64, 0)
 	//	d := [0]float64
-	h := [0][0]float64
-	hmod := [0][0]float64
+	h := utils.MakeMatrixFloat64(0, 0)
+	hmod := utils.MakeMatrixFloat64(0, 0)
 	//	z := [0][0]float64
 	nu := 0.0
 	lambdav := 0.0
@@ -4778,12 +4750,12 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	state := NewMinLbfgsState()
 	//	x := [0]float64
 	//	y := [0]float64
-	wbase := [0]float64
-	wdir := [0]float64
-	wt := [0]float64
+	wbase := make([]float64, 0)
+	wdir := make([]float64, 0)
+	wt := make([]float64, 0)
 	//	wx := [0]float64
 	pass := 0
-	wbest := [0]float64
+	wbest := make([]float64, 0)
 	ebest := 0.0
 	invinfo := 0
 	invrep := &matinvreport{}
@@ -4791,7 +4763,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	solverrep := &densesolverreport{}
 	i_ := 0
 
-	info = 0
+	*info = 0
 
 	mlpbase.MlpProperties(network, &nin, &nout, &wcount)
 	lambdaup := 10.0
@@ -4802,20 +4774,20 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	//
 	// Test for inputs
 	//
-	if npoints <= 0 | restarts < 1 {
-		info = -1
+	if npoints <= 0 || restarts < 1 {
+		*info = -1
 		return
 	}
 	if mlpbase.MlpIsSoftMax(network) {
 		for i = 0; i <= npoints - 1; i++ {
-			if int(round(xy[i][ nin])) < 0 | int(round(xy[i][nin])) >= nout {
-				info = -2
+			if utils.RoundInt((*xy)[i][ nin]) < 0 || utils.RoundInt((*xy)[i][nin]) >= nout {
+				*info = -2
 				return
 			}
 		}
 	}
 	decay = math.Max(decay, mindecay)
-	info = 2
+	*info = 2
 
 	//
 	// Initialize data
@@ -4828,14 +4800,14 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	// General case.
 	// Prepare task and network. Allocate space.
 	//
-	mlpbase.MlpInitPreprocessor(network, xy, npoints)
-	g = [wcount - 1 + 1]float64
-	h = [wcount - 1 + 1][ wcount - 1 + 1]float64
-	hmod = [wcount - 1 + 1][ wcount - 1 + 1]float64
-	wbase = [wcount - 1 + 1]float64
-	wdir = [wcount - 1 + 1]float64
-	wbest = [wcount - 1 + 1]float64
-	wt = [wcount - 1 + 1]float64
+	mlpbase.MlpInitPreprocessor(network, *xy, npoints)
+	g = make([]float64, wcount - 1 + 1)
+	h = utils.MakeMatrixFloat64(wcount - 1 + 1, wcount - 1 + 1)
+	hmod = utils.MakeMatrixFloat64(wcount - 1 + 1, wcount - 1 + 1)
+	wbase = make([]float64, wcount - 1 + 1)
+	wdir = make([]float64, wcount - 1 + 1)
+	wbest = make([]float64, wcount - 1 + 1)
+	wt = make([]float64, wcount - 1 + 1)
 	//	wx = [wcount - 1 + 1]float64
 	ebest = maxrealnumber
 
@@ -4854,8 +4826,8 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 		for i_ = 0; i_ <= wcount - 1; i_++ {
 			wbase[i_] = network.Weights[i_]
 		}
-		minlbfgscreate(wcount, math.Min(wcount, 5), wbase, state)
-		minlbfgssetcond(state, 0, 0, 0, math.Max(25, wcount))
+		minlbfgscreate(wcount, utils.MinInt(wcount, 5), &wbase, state)
+		minlbfgssetcond(state, 0, 0, 0, utils.MaxInt(25, wcount))
 		for minlbfgsiteration(state) {
 			//
 			// gradient
@@ -4863,7 +4835,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 			for i_ = 0; i_ <= wcount - 1; i_++ {
 				network.Weights[i_] = state.x[i_]
 			}
-			mlpbase.MlpGradBatch(network, xy, npoints, &state.f, &state.g)
+			mlpbase.MlpGradBatch(network, *xy, npoints, &state.f, &state.g)
 
 			//
 			// weight decay
@@ -4928,7 +4900,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 				nu = nu * 2
 				continue
 			}
-			spdmatrixcholeskysolve(hmod, wcount, true, g, &solverinfo, solverrep, &wdir)
+			spdmatrixcholeskysolve(&hmod, wcount, true, &g, &solverinfo, solverrep, &wdir)
 			if solverinfo < 0 {
 				lambdav = lambdav * lambdaup * nu
 				nu = nu * 2
@@ -4975,7 +4947,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 				// if matrix can't be inverted then exit with errors
 				// TODO: make WCount steps in direction suggested by HMod
 				//
-				info = -9
+				*info = -9
 				return
 			}
 			for i_ = 0; i_ <= wcount - 1; i_++ {
@@ -4984,7 +4956,9 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 			for i = 0; i <= wcount - 1; i++ {
 				wt[i] = 0
 			}
-			minlbfgscreatex(wcount, wcount, wt, 1, 0.0, state)
+			if err := minlbfgscreatex(wcount, wcount, &wt, 1, 0.0, state); err != nil {
+				fmt.Printf("Err 01: %v", err)
+			}
 			minlbfgssetcond(state, 0, 0, 0, 5)
 			for minlbfgsiteration(state) {
 				//
@@ -4997,7 +4971,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 					}
 					network.Weights[i] = wbase[i] + v
 				}
-				mlpbase.MlpGradBatch(network, xy, npoints, &state.f, &g)
+				mlpbase.MlpGradBatch(network, *xy, npoints, &state.f, &g)
 				for i = 0; i <= wcount - 1; i++ {
 					state.g[i] = 0
 				}
@@ -5029,7 +5003,7 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 				//
 				rep.NGrad += 1
 			}
-			minlbfgsresults(state, *wt, internalrep)
+			minlbfgsresults(state, &wt, internalrep)
 
 			//
 			// Accept new position.
@@ -5087,7 +5061,6 @@ func MlpTrainLm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints 
 	}
 }
 
-
 /*************************************************************************
 Neural  network  training  using  L-BFGS  algorithm  with  regularization.
 Subroutine  trains  neural  network  with  restarts from random positions.
@@ -5125,54 +5098,50 @@ OUTPUT PARAMETERS:
   -- ALGLIB --
 	 Copyright 09.12.2007 by Bochkanov Sergey
 *************************************************************************/
-func MlpTrainLbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits int, info *int, rep *MlpReport) {
+func MlpTrainLbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits int, info *int, rep *MlpReport) error {
 	i := 0
 	pass := 0
 	nin := 0
 	nout := 0
 	wcount := 0
-	w := [0]float64
-	wbest := [0]float64
+	w := make([]float64, 0)
+	wbest := make([]float64, 0)
 	e := 0.0
 	v := 0.0
 	ebest := 0.0
 	internalrep := &minlbfgsreport{}
 	state := NewMinLbfgsState()
 	i_ := 0
-
-	info = 0
-
+	*info = 0
 	//
 	// Test inputs, parse flags, read network geometry
 	//
-	if wstep == 0 & maxits == 0 {
-		info = -8
-		return
+	if wstep == 0 && maxits == 0 {
+		*info = -8
+		return nil
 	}
-	if ((npoints <= 0 | restarts < 1) | wstep < 0) | maxits < 0 {
-		info = -1
-		return
+	if ((npoints <= 0 || restarts < 1) || wstep < 0) || maxits < 0 {
+		*info = -1
+		return nil
 	}
 	mlpbase.MlpProperties(network, &nin, &nout, &wcount)
 	if mlpbase.MlpIsSoftMax(network) {
 		for i = 0; i <= npoints - 1; i++ {
-			if int(round(xy[i][ nin])) < 0 | int(round(xy[i][ nin])) >= nout {
-				info = -2
-				return
+			if utils.RoundInt((*xy)[i][ nin]) < 0 || utils.RoundInt((*xy)[i][ nin]) >= nout {
+				*info = -2
+				return nil
 			}
 		}
 	}
 	decay = math.Max(decay, mindecay)
-	info = 2
-
+	*info = 2
 	//
 	// Prepare
 	//
-	mlpbase.MlpInitPreprocessor(network, xy, npoints)
-	w = [wcount - 1 + 1]float64
-	wbest = [wcount - 1 + 1]float64
+	mlpbase.MlpInitPreprocessor(network, *xy, npoints)
+	w = make([]float64, wcount - 1 + 1)
+	wbest = make([]float64, wcount - 1 + 1)
 	ebest = maxrealnumber
-
 	//
 	// Multiple starts
 	//
@@ -5187,13 +5156,19 @@ func MlpTrainLbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoin
 		for i_ = 0; i_ <= wcount - 1; i_++ {
 			w[i_] = network.Weights[i_]
 		}
-		minlbfgscreate(wcount, math.Min(wcount, 10), w, state)
-		minlbfgssetcond(state, 0.0, 0.0, wstep, maxits)
+		if err := minlbfgscreate(wcount, utils.MinInt(wcount, 10), &w, state); err != nil {
+			return err
+		}
+		if err := minlbfgssetcond(state, 0.0, 0.0, wstep, maxits); err != nil {
+			return err
+		}
 		for minlbfgsiteration(state) {
 			for i_ = 0; i_ <= wcount - 1; i_++ {
 				network.Weights[i_] = state.x[i_]
 			}
-			mlpbase.MlpGradNBatch(network, xy, npoints, &state.f, &state.g)
+			if err := mlpbase.MlpGradNBatch(network, *xy, npoints, &state.f, &state.g); err != nil {
+				return err
+			}
 			v = 0.0
 			for i_ = 0; i_ <= wcount - 1; i_++ {
 				v += network.Weights[i_] * network.Weights[i_]
@@ -5208,7 +5183,6 @@ func MlpTrainLbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoin
 		for i_ = 0; i_ <= wcount - 1; i_++ {
 			network.Weights[i_] = w[i_]
 		}
-
 		//
 		// Compare with best
 		//
@@ -5224,13 +5198,13 @@ func MlpTrainLbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoin
 			ebest = e
 		}
 	}
-
 	//
 	// The best network
 	//
 	for i_ = 0; i_ <= wcount - 1; i_++ {
 		network.Weights[i_] = wbest[i_]
 	}
+	return nil
 }
 
 /*************************************************************************
@@ -5275,18 +5249,18 @@ minimum of validation set error.
   -- ALGLIB --
 	 Copyright 10.03.2009 by Bochkanov Sergey
 *************************************************************************/
-func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy *[][]float64, trnsize int, valxy *[][]float64, valsize int, decay float64, restarts int, info *int, rep *MlpReport) {
+func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy [][]float64, trnsize int, valxy *[][]float64, valsize int, decay float64, restarts int, info *int, rep *MlpReport) {
 	i := 0
 	pass := 0
 	nin := 0
 	nout := 0
 	wcount := 0
-	w := [0]float64
-	wbest := [0]float64
+	w := make([]float64, 0)
+	wbest := make([]float64, 0)
 	e := 0.0
 	v := 0.0
 	ebest := 0.0
-	wfinal := [0]float64
+	wfinal := make([]float64, 0)
 	efinal := 0.0
 	itbest := 0
 	internalrep := &minlbfgsreport{}
@@ -5294,40 +5268,40 @@ func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy *[][]float64, trnsi
 	wstep := 0.0
 	i_ := 0
 
-	info = 0
+	*info = 0
 	wstep = 0.001
 
 	//
 	// Test inputs, parse flags, read network geometry
 	//
-	if ((trnsize <= 0 | valsize <= 0) | restarts < 1) | decay < 0 {
-		info = -1
+	if ((trnsize <= 0 || valsize <= 0) || restarts < 1) || decay < 0 {
+		*info = -1
 		return
 	}
 	mlpbase.MlpProperties(network, &nin, &nout, &wcount)
 	if mlpbase.MlpIsSoftMax(network) {
 		for i = 0; i <= trnsize - 1; i++ {
-			if int(round(trnxy[i][ nin])) < 0 | int(round(trnxy[i][nin])) >= nout {
-				info = -2
+			if utils.RoundInt(trnxy[i][ nin]) < 0 || utils.RoundInt(trnxy[i][nin]) >= nout {
+				*info = -2
 				return
 			}
 		}
 		for i = 0; i <= valsize - 1; i++ {
-			if int(round(valxy[i][ nin])) < 0 | int(round(valxy[i][ nin])) >= nout {
-				info = -2
+			if utils.RoundInt((*valxy)[i][ nin]) < 0 || utils.RoundInt((*valxy)[i][ nin]) >= nout {
+				*info = -2
 				return
 			}
 		}
 	}
-	info = 2
+	*info = 2
 
 	//
 	// Prepare
 	//
 	mlpbase.MlpInitPreprocessor(network, trnxy, trnsize)
-	w = [wcount - 1 + 1]float64
-	wbest = [wcount - 1 + 1]float64
-	wfinal = [wcount - 1 + 1]float64
+	w = make([]float64, wcount - 1 + 1)
+	wbest = make([]float64, wcount - 1 + 1)
+	wfinal = make([]float64, wcount - 1 + 1)
 	efinal = maxrealnumber
 	for i = 0; i <= wcount - 1; i++ {
 		wfinal[i] = 0
@@ -5352,7 +5326,7 @@ func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy *[][]float64, trnsi
 		for i_ = 0; i_ <= wcount - 1; i_++ {
 			w[i_] = network.Weights[i_]
 		}
-		minlbfgscreate(wcount, math.Min(wcount, 10), w, state)
+		minlbfgscreate(wcount, utils.MinInt(wcount, 10), &w, state)
 		minlbfgssetcond(state, 0.0, 0.0, wstep, 0)
 		minlbfgssetxrep(state, true)
 		for minlbfgsiteration(state) {
@@ -5388,8 +5362,8 @@ func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy *[][]float64, trnsi
 					}
 					itbest = internalrep.iterationscount
 				}
-				if internalrep.iterationscount > 30 & internalrep.iterationscount > (1.5 * itbest) {
-					info = 6
+				if internalrep.iterationscount > 30 && float64(internalrep.iterationscount) > (1.5 * float64(itbest)) {
+					*info = 6
 					break
 				}
 			}
@@ -5415,41 +5389,276 @@ func MlpTraines(network *mlpbase.Multilayerperceptron, trnxy *[][]float64, trnsi
 	}
 }
 
-
 /*************************************************************************
-This function checks that all values from X[] are finite
+Subroutine prepares K-fold split of the training set.
 
-  -- ALGLIB --
-	 Copyright 18.06.2010 by Bochkanov Sergey
+NOTES:
+	"NClasses>0" means that we have classification task.
+	"NClasses<0" means regression task with -NClasses real outputs.
 *************************************************************************/
-func isfinitevector(x *[]float64, n int) (bool, error) {
-	if !(n >= 0) {
-		return false, fmt.Errorf("APSERVIsFiniteVector: internal error (N<0)")
+func mlpkfoldsplit(xy *[][]float64, npoints, nclasses, foldscount int, stratifiedsplits bool, folds *[]int) error {
+	i := 0
+	j := 0
+	k := 0
+
+	//
+	// test parameters
+	//
+	if !(npoints > 0) {
+		return fmt.Errorf("MLPKFoldSplit: wrong NPoints!")
+	}
+	if !(nclasses > 1 || nclasses < 0) {
+		return fmt.Errorf("MLPKFoldSplit: wrong NClasses!")
+	}
+	if !(foldscount >= 2 && foldscount <= npoints) {
+		return fmt.Errorf("MLPKFoldSplit: wrong FoldsCount!")
+	}
+	if !(!stratifiedsplits) {
+		return fmt.Errorf("MLPKFoldSplit: stratified splits are not supported!")
 	}
 
-	for i := 0; i <= n - 1; i++ {
-		if !isfinite(x[i]) {
-			return false, nil
+	//
+	// Folds
+	//
+	*folds = make([]int, npoints - 1 + 1)
+	for i = 0; i <= npoints - 1; i++ {
+		(*folds)[i] = i * foldscount / npoints
+	}
+	for i = 0; i <= npoints - 2; i++ {
+		j = i + rand.Intn(npoints - i)
+		if j != i {
+			k = (*folds)[i]
+			(*folds)[i] = (*folds)[j]
+			(*folds)[j] = k
 		}
 	}
-
-	return true, nil
+	return nil
 }
 
-func round(f float64) float64 {
-	return math.Floor(f + .5)
-}
+/*************************************************************************
+Internal cross-validation subroutine
+*************************************************************************/
+func mlpkfoldcvgeneral(n *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, lmalgorithm bool, wstep float64, maxits int, info *int, rep *MlpReport, cvrep *MlpCvReport) {
+	i := 0
+	fold := 0
+	j := 0
+	k := 0
+	network := mlpbase.NewMlp()
+	nin := 0
+	nout := 0
+	rowlen := 0
+	wcount := 0
+	nclasses := 0
+	tssize := 0
+	cvssize := 0
+	cvset := utils.MakeMatrixFloat64(0, 0)
+	testset := utils.MakeMatrixFloat64(0, 0)
+	folds := make([]int, 0)
+	relcnt := 0
+	internalrep := MlpReport{}
+	x := make([]float64, 0)
+	y := make([]float64, 0)
+	i_ := 0
 
-func isfinite(d float64) bool {
-	return !math.IsNaN(d) && !(d > math.MaxFloat64 || d < -math.MaxFloat64)
-}
+	*info = 0;
 
-func sign(value float64) int {
-	if value > 0 {
-		return 1
+
+	//
+	// Read network geometry, test parameters
+	//
+	mlpbase.MlpProperties(n, &nin, &nout, &wcount)
+	if mlpbase.MlpIsSoftMax(n) {
+		nclasses = nout
+		rowlen = nin + 1
+	}else {
+		nclasses = -nout
+		rowlen = nin + nout
 	}
-	if value < 0 {
-		return -1
+	if (npoints <= 0 || foldscount < 2) || foldscount > npoints {
+		*info = -1
+		return
 	}
-	return 0
+	mlpbase.MlpCopy(n, network)
+
+	//
+	// K-fold out cross-validation.
+	// First, estimate generalization error
+	//
+	testset = utils.MakeMatrixFloat64(npoints - 1 + 1, rowlen - 1 + 1)
+	cvset = utils.MakeMatrixFloat64(npoints - 1 + 1, rowlen - 1 + 1)
+	x = make([]float64, nin - 1 + 1)
+	y = make([]float64, nout - 1 + 1)
+	mlpkfoldsplit(xy, npoints, nclasses, foldscount, false, &folds)
+	cvrep.RelclsError = 0
+	cvrep.Avgce = 0
+	cvrep.RmsError = 0
+	cvrep.AvgError = 0
+	cvrep.AvgrelError = 0
+	rep.NGrad = 0
+	rep.NHess = 0
+	rep.NCholesky = 0
+	relcnt = 0
+	for fold = 0; fold <= foldscount - 1; fold++ {
+		//
+		// Separate set
+		//
+		tssize = 0
+		cvssize = 0
+		for i = 0; i <= npoints - 1; i++ {
+			if folds[i] == fold {
+				for i_ = 0; i_ <= rowlen - 1; i_++ {
+					testset[tssize][ i_] = (*xy)[i][ i_]
+				}
+				tssize = tssize + 1
+
+			}else {
+				for i_ = 0; i_ <= rowlen - 1; i_++ {
+					cvset[cvssize][ i_] = (*xy)[i][ i_]
+				}
+				cvssize = cvssize + 1
+			}
+		}
+
+		//
+		// Train on CV training set
+		//
+		if lmalgorithm {
+			MlpTrainLm(network, &cvset, cvssize, decay, restarts, info, &internalrep)
+		}else {
+			MlpTrainLbfgs(network, &cvset, cvssize, decay, restarts, wstep, maxits, info, &internalrep)
+		}
+		if *info < 0 {
+			cvrep.RelclsError = 0
+			cvrep.Avgce = 0
+			cvrep.RmsError = 0
+			cvrep.AvgError = 0
+			cvrep.AvgrelError = 0
+			return
+		}
+		rep.NGrad = rep.NGrad + internalrep.NGrad
+		rep.NHess = rep.NHess + internalrep.NHess
+		rep.NCholesky = rep.NCholesky + internalrep.NCholesky
+
+		//
+		// Estimate error using CV test set
+		//
+		if mlpbase.MlpIsSoftMax(network) {
+			//
+			// classification-only code
+			//
+			cvrep.RelclsError += float64(mlpbase.MlpClsError(network, &testset, tssize))
+			cvrep.Avgce += mlpbase.MlpErrorN(network, &testset, tssize)
+		}
+		for i = 0; i <= tssize - 1; i++ {
+			for i_ = 0; i_ <= nin - 1; i_++ {
+				x[i_] = testset[i][ i_]
+			}
+			mlpbase.MlpProcess(network, &x, &y)
+			if mlpbase.MlpIsSoftMax(network) {
+				//
+				// Classification-specific code
+				//
+				k = utils.RoundInt(testset[i][ nin])
+				for j = 0; j <= nout - 1; j++ {
+					if j == k {
+						cvrep.RmsError = cvrep.RmsError + utils.SqrFloat64(y[j] - 1)
+						cvrep.AvgError = cvrep.AvgError + math.Abs(y[j] - 1)
+						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs(y[j] - 1)
+						relcnt = relcnt + 1
+					}else {
+						cvrep.RmsError = cvrep.RmsError + utils.SqrFloat64(y[j])
+						cvrep.AvgError = cvrep.AvgError + math.Abs(y[j])
+					}
+				}
+			}else {
+				//
+				// Regression-specific code
+				//
+				for j = 0; j <= nout - 1; j++ {
+					cvrep.RmsError = cvrep.RmsError + utils.SqrFloat64(y[j] - testset[i][ nin + j])
+					cvrep.AvgError = cvrep.AvgError + math.Abs(y[j] - testset[i][ nin + j])
+					if testset[i][ nin + j] != 0 {
+						cvrep.AvgrelError = cvrep.AvgrelError + math.Abs((y[j] - testset[i][ nin + j]) / testset[i][ nin + j])
+						relcnt += 1
+					}
+				}
+			}
+		}
+	}
+	if mlpbase.MlpIsSoftMax(network) {
+		cvrep.RelclsError = cvrep.RelclsError / float64(npoints)
+		cvrep.Avgce = cvrep.Avgce / (math.Log(2) * float64(npoints))
+	}
+	cvrep.RmsError = math.Sqrt(cvrep.RmsError / float64(npoints * nout))
+	cvrep.AvgError = cvrep.AvgError / float64(npoints * nout)
+	cvrep.AvgrelError = cvrep.AvgrelError / float64(relcnt)
+	*info = 1
 }
+
+/*************************************************************************
+Cross-validation estimate of generalization error.
+
+Base algorithm - L-BFGS.
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry.   Network is
+					not changed during cross-validation -  it is used only
+					as a representative of its architecture.
+	XY          -   training set.
+	SSize       -   training set size
+	Decay       -   weight  decay, same as in MLPTrainLBFGS
+	Restarts    -   number of restarts, >0.
+					restarts are counted for each partition separately, so
+					total number of restarts will be Restarts*FoldsCount.
+	WStep       -   stopping criterion, same as in MLPTrainLBFGS
+	MaxIts      -   stopping criterion, same as in MLPTrainLBFGS
+	FoldsCount  -   number of folds in k-fold cross-validation,
+					2<=FoldsCount<=SSize.
+					recommended value: 10.
+
+OUTPUT PARAMETERS:
+	Info        -   return code, same as in MLPTrainLBFGS
+	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+	CVRep       -   generalization error estimates
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func Mlpkfoldcvlbfgs(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts int, wstep float64, maxits, foldscount int, info *int, rep *MlpReport, cvrep *MlpCvReport) {
+	*info = 0
+	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, false, wstep, maxits, info, rep, cvrep)
+}
+
+/*************************************************************************
+Cross-validation estimate of generalization error.
+
+Base algorithm - Levenberg-Marquardt.
+
+INPUT PARAMETERS:
+	Network     -   neural network with initialized geometry.   Network is
+					not changed during cross-validation -  it is used only
+					as a representative of its architecture.
+	XY          -   training set.
+	SSize       -   training set size
+	Decay       -   weight  decay, same as in MLPTrainLBFGS
+	Restarts    -   number of restarts, >0.
+					restarts are counted for each partition separately, so
+					total number of restarts will be Restarts*FoldsCount.
+	FoldsCount  -   number of folds in k-fold cross-validation,
+					2<=FoldsCount<=SSize.
+					recommended value: 10.
+
+OUTPUT PARAMETERS:
+	Info        -   return code, same as in MLPTrainLBFGS
+	Rep         -   report, same as in MLPTrainLM/MLPTrainLBFGS
+	CVRep       -   generalization error estimates
+
+  -- ALGLIB --
+	 Copyright 09.12.2007 by Bochkanov Sergey
+*************************************************************************/
+func Mlpkfoldcvlm(network *mlpbase.Multilayerperceptron, xy *[][]float64, npoints int, decay float64, restarts, foldscount int, info *int, rep *MlpReport, cvrep *MlpCvReport) {
+	*info = 0;
+	mlpkfoldcvgeneral(network, xy, npoints, decay, restarts, foldscount, true, 0.0, 0, info, rep, cvrep)
+}
+
+

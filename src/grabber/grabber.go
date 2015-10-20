@@ -1,30 +1,29 @@
 package main
-
 import (
 	"log"
+	"time"
 	"net/http"
 	"encoding/json"
-	"strconv"
-	"time"
+
 	"pr.optima/src/core/entities"
-	"pr.optima/src/core/statistic"
 	"pr.optima/src/repository"
-	"pr.optima/src/server/rest.go/server/responses"
+	"./work"
 )
+
 const (
 	sourceUrl = "https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD"
-	frameSize = 200
-	step = 5
-	rangeCount = 6
+	repoSize = 200
 )
 var (
-	_rate responses.RateResponse
-	_error responses.ErrorResponse
+	_rate entities.RateResponse
+	_error entities.ErrorResponse
 	_repo repository.RateRepo
+	_rubWork *work.Work
 )
 
 func init() {
-	_repo = repository.New(frameSize)
+	_repo = repository.New(repoSize, true)
+	_rubWork = work.NewWork(6, 5, 20, 1, "RUB")
 
 	_now := time.Now()
 	_next := _now.Round(time.Hour)
@@ -63,7 +62,7 @@ func init() {
 					EUR     : _rate.Rates["EUR"],
 					CNY     : _rate.Rates["CNY"],
 					CHF     : _rate.Rates["CHF"]}); err != nil {
-					log.Printf("Push rate to repo error: %v", err)
+					log.Printf("Push rate to repo error: %v.", err)
 					next = now.Round(time.Minute).Add(time.Minute)
 				}else {
 					// logic here
@@ -75,7 +74,7 @@ func init() {
 				return
 			}
 			ticker = time.NewTicker(next.Sub(now))
-			log.Printf("Next tick: %v;\t Repo length: %v", next, strconv.Itoa(_repo.Len()))
+			log.Printf("Next tick: %v;\t Repo length: %d.", next, _repo.Len())
 
 		case <-quit:
 			ticker.Stop()
@@ -85,42 +84,14 @@ func init() {
 }
 
 func executeDomainLogic() {
-	l := _repo.Len()
-	if l > frameSize + step {
-		newL, err := _repo.Resize(frameSize)
-		if err != nil {
-			log.Printf("Repo resize error: %V", err)
-		}else {
-			//	re initialize nero nets
-			log.Printf("Repo new length: %d", newL)
-		}
-	}
-	r := extractFloatSet(_repo.GetAll(), "RUB")
-	ranges, err := statistic.CalculateRanges(r, rangeCount)
+	reates := _repo.GetAll()
+	rub, err := _rubWork.Process(reates)
+
 	if err != nil {
-		log.Print(err)
-	}else {
-		classes, err := statistic.CalculateClasses(r, ranges)
-		if err != nil {
-			log.Print(err)
-		}else {
-			log.Print(classes)
-		}
-	}
-}
-
-func extractFloatSet(rates []entities.Rate, symbol string) []float32 {
-	var result []float32
-
-	for _, element := range rates {
-		switch symbol {
-		case "RUB":
-			result = append(result, element.RUB)
-		}
+		log.Printf("executeDomainLogic error: %v", err)
 	}
 
-	return result
+	log.Printf("nueral result: %d", rub)
 }
 
-func main() {
-}
+func main() {}

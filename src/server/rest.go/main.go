@@ -12,7 +12,6 @@ import (
 //	"io/ioutil"
 	"pr.optima/src/core/entities"
 	"pr.optima/src/server/rest.go/server"
-	"pr.optima/src/server/rest.go/server/responses"
 	"pr.optima/src/repository"
 	"github.com/gorilla/mux"
 )
@@ -20,9 +19,9 @@ import (
 var router *mux.Router
 
 func init() {
-	var _rate responses.RateResponse
-	var _error responses.ErrorResponse
-	var _repo = repository.New()
+	var _rate entities.RateResponse
+	var _error entities.ErrorResponse
+	var _repo = repository.New(200, true)
 
 	_now := time.Now()
 	_next := _now.Round(time.Hour)
