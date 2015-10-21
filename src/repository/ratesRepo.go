@@ -104,10 +104,10 @@ func (rr rateRepo) Resize(size int) (int, error) {
 		return result, nil
 	}
 }
-func (rr rateRepo) Reload(size int) (int, error) {
+func (rr rateRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
-	rr <- commandData{action: reloadRates, size: size, error: errReply, result: reply}
+	rr <- commandData{action: reloadRates, error: errReply, result: reply}
 	err := <-errReply
 	result := (<-reply).(int)
 	if err != nil {

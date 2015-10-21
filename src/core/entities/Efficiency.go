@@ -2,30 +2,50 @@ package entities
 import (
 	"fmt"
 	"time"
+	"math"
 )
 
 type Efficiency struct {
-	TrainType     string     `datastore:"trainType,noindex" json:"trainType"`
-	RangesCount   int32      `datastore:"rangesCount,noindex" json:"rangesCount"`
-	Limit         int32      `datastore:"limit,noindex" json:"limit"`
-	Step          int32      `datastore:"step,noindex" json:"step"`
-	Symbol        string     `datastore:"symbol,index" json:"symbol"`
-	DirectionRate float32    `datastore:"directionRate,noindex" json:"directionRate"`
-	RangeRate     float32    `datastore:"rangeRate,noindex" json:"rangeRate"`
+	TrainType        string     `datastore:"trainType,index" json:"trainType"`
+	RangesCount      int32      `datastore:"rangesCount,index" json:"rangesCount"`
+	Limit            int32      `datastore:"limit,index" json:"limit"`
+	Step             int32      `datastore:"step,index" json:"step"`
+	Symbol           string     `datastore:"symbol,index" json:"symbol"`
+	SuccessDirection int32      `datastore:"successDirection,index" json:"successDirection"`
+	SuccessRange     int32      `datastore:"successRange,index" json:"successRange"`
+	Total            int32      `datastore:"total,index" json:"total"`
+	Timestamp        int64      `datastore:"timestamp,index" json:"timestamp"`
 }
 
 func (f *Efficiency) ToString() string {
-	return fmt.Sprintf("Score: Symbol: %s\nRanges: %d\nLimit: %d\nStep: %d\nDirectionRate: %v\nRangeRate: %v",
+	return fmt.Sprintf("Score: Symbol: %s\nRanges: %d\nLimit: %d\nStep: %d\nDirectionRate: %v\nRangeRate: %v\nTotal: %d\nLastUpdate: %v",
 		f.Symbol,
 		f.RangesCount,
 		f.Limit,
 		f.Step,
-		f.DirectionRate,
-		f.RangeRate)
+		f.GetDirectionRate(),
+		f.GetRangeRate(),
+		f.Total,
+		f.LastUpdate())
 }
 func (f *Efficiency) GetMlpKey() string {
 	return fmt.Sprintf("%d_%s_%d_%d", f.RangesCount, f.TrainType, f.Limit, f.Step)
 }
 func (f *Efficiency) GetCompositeKey() string {
 	return fmt.Sprintf("%d_%s_%d_%d_%s", f.RangesCount, f.TrainType, f.Limit, f.Step, f.Symbol)
+}
+func (f *Efficiency) GetDirectionRate() float64 {
+	if f.Total > 0 {
+		return float64(f.SuccessDirection) / float64(f.Total)
+	}
+	return math.NaN()
+}
+func (f *Efficiency) GetRangeRate() float64 {
+	if f.Total > 0 {
+		return float64(f.SuccessRange) / float64(f.Total)
+	}
+	return math.NaN()
+}
+func (f *Efficiency) LastUpdate() time.Time {
+	return time.Unix(f.Timestamp, 0).UTC()
 }

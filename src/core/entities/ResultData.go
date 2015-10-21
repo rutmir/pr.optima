@@ -5,14 +5,14 @@ import (
 )
 
 type ResultData struct {
+	RangesCount int32      `datastore:"rangesCount,noindex" json:"rangesCount"`
+	Limit       int32      `datastore:"limit,noindex" json:"limit"`
+	TrainType   string     `datastore:"trainType,noindex" json:"trainType"`
+	Step        int32      `datastore:"step,noindex" json:"step"`
 	Symbol      string     `datastore:"symbol,index" json:"symbol"`
 	Timestamp   int64      `datastore:"timestamp,index" json:"timestamp"`
-	Step        int32      `datastore:"step,noindex" json:"step"`
-	Limit       int32      `datastore:"limit,noindex" json:"limit"`
 	Source      []int32    `datastore:"source,noindex" json:"source"`
 	Prediction  int32      `datastore:"prediction,noindex" json:"prediction"`
-	RangesCount int32      `datastore:"rangesCount,noindex" json:"rangesCount"`
-	TrainType   string     `datastore:"trainType,noindex" json:"trainType"`
 }
 
 func (f *ResultData) ToString() string {

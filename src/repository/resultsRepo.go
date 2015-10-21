@@ -18,6 +18,7 @@ const (
 	getLastResultData
 	lengthResultData
 	resizeResultData
+	reloadResultData
 	endResultData
 )
 type commandResultData struct {
@@ -50,6 +51,7 @@ type ResultDataRepo interface {
 	GetLast() (entities.ResultData, bool)
 	Close() []entities.ResultData
 	Resize(int) (int, error)
+	Reload() (int, error)
 }
 
 func (rr resultDataRepo) Push(value entities.ResultData) error {
@@ -98,6 +100,18 @@ func (rr resultDataRepo) Resize(size int) (int, error) {
 		return result, nil
 	}
 }
+func (rr resultDataRepo) Reload() (int, error) {
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr <- commandResultData{action: reloadResultData, error: errReply, result: reply}
+	err := <-errReply
+	result := (<-reply).(int)
+	if err != nil {
+		return -1, error(err)
+	} else {
+		return result, nil
+	}
+}
 func (rr resultDataRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
@@ -136,6 +150,14 @@ func (rr resultDataRepo) run() {
 			}else {
 				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
 				command.result <- -1
+			}
+		case reloadResultData:
+			if err := rr.loadStartResultData(); err != nil {
+				command.error <- fmt.Errorf("Repo reload error: %v.", err)
+				command.result <- -1
+			}else {
+				command.error <- nil
+				command.result <- len(_rates)
 			}
 		case endResultData:
 			close(rr.pipe)
