@@ -5,23 +5,35 @@ import (
 )
 
 type ResultData struct {
-	Symbol     string     `datastore:"symbol,index" json:"symbol"`
-	Timestamp  int64      `datastore:"timestamp,index" json:"timestamp"`
-	Step       int32      `datastore:"step,noindex" json:"step"`
-	Limit      int32      `datastore:"limit,noindex" json:"limit"`
-	Source     []int32    `datastore:"source,noindex" json:"source"`
-	Prediction int32      `datastore:"prediction,noindex" json:"prediction"`
+	Symbol      string     `datastore:"symbol,index" json:"symbol"`
+	Timestamp   int64      `datastore:"timestamp,index" json:"timestamp"`
+	Step        int32      `datastore:"step,noindex" json:"step"`
+	Limit       int32      `datastore:"limit,noindex" json:"limit"`
+	Source      []int32    `datastore:"source,noindex" json:"source"`
+	Prediction  int32      `datastore:"prediction,noindex" json:"prediction"`
+	RangesCount int32      `datastore:"rangesCount,noindex" json:"rangesCount"`
+	TrainType   string     `datastore:"trainType,noindex" json:"trainType"`
 }
 
 func (f *ResultData) ToString() string {
-	return fmt.Sprintf("ResultData: Symbol: %s\nDatetime: %v\nStep: %d\nLimit: %d\nSource: %v\n\tUSD: %v\nPrediction: %d",
+	return fmt.Sprintf("ResultData: Symbol: %s\nRanges: %d\nLimit: %d\nStep: %d\nDatetime: %v\nSource: %v\nPrediction: %d",
 		f.Symbol,
-		f.DateCreated(),
-		f.Step,
+		f.RangesCount,
 		f.Limit,
+		f.Step,
+		f.DateCreated(),
 		f.Source,
 		f.Prediction)
 }
 func (f *ResultData) DateCreated() time.Time {
 	return time.Unix(f.Timestamp, 0).UTC()
+}
+func (f *ResultData) GetMlpKey() string {
+	return fmt.Sprintf("%d_%s_%d_%d", f.RangesCount, f.TrainType, f.Limit, f.Step)
+}
+func (f *ResultData) GetMlpSymbolKey() string {
+	return fmt.Sprintf("%s_%s", f.GetMlpKey(), f.Symbol)
+}
+func (f *ResultData) GetCompositeKey() string {
+	return fmt.Sprintf("%s_%d", f.GetMlpSymbolKey(), f.Symbol, f.Timestamp)
 }

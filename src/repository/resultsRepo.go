@@ -181,7 +181,7 @@ func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo
 func (rr resultDataRepo) loadStartResultData() error {
 	var dst []entities.ResultData
 	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-timestamp").Limit(rr.limit), &dst); err != nil {
-//		return err
+		return err
 	}
 	if dst != nil {
 		for i := len(dst) - 1; i > -1; i-- {
@@ -194,5 +194,5 @@ func (rr resultDataRepo) loadStartResultData() error {
 }
 func (rr resultDataRepo) insertNewResultData(data entities.ResultData) (*datastore.Key, error) {
 	ctx := context.Background()
-	return rr.client.Put(ctx, datastore.NewIncompleteKey(ctx, "ResultData", nil), &data)
+	return rr.client.Put(ctx, datastore.NewKey(ctx, "ResultData", data.GetCompositeKey(), 0, nil), &data)
 }

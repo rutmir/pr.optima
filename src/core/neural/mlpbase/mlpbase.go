@@ -3,7 +3,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"core/neural/utils"
+	"pr.optima/src/core/neural/utils"
 )
 
 const (

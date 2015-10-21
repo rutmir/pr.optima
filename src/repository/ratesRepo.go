@@ -13,12 +13,13 @@ import (
 )
 
 const (
-	push commandAction = iota
-	getAll
-	getLast
-	length
-	resize
-	end
+	pushRate commandAction = iota
+	getAllRates
+	getLastRate
+	lengthRates
+	resizeRates
+	reloadRates
+	endRates
 )
 const (
 	projectID = "rp-optima"
@@ -54,11 +55,12 @@ type RateRepo interface {
 	GetLast() (entities.Rate, bool)
 	Close() []entities.Rate
 	Resize(int) (int, error)
+	Reload() (int, error)
 }
 
 func (rr rateRepo) Push(rate entities.Rate) error {
 	reply := make(chan error)
-	rr <- commandData{action: push, value: rate, error: reply}
+	rr <- commandData{action: pushRate, value: rate, error: reply}
 	err := <-reply
 	if err != nil {
 		return error(err)
@@ -68,22 +70,22 @@ func (rr rateRepo) Push(rate entities.Rate) error {
 }
 func (rr rateRepo) Len() int {
 	reply := make(chan interface{})
-	rr <- commandData{action: length, result: reply}
+	rr <- commandData{action: lengthRates, result: reply}
 	return (<-reply).(int)
 }
 func (rr rateRepo) GetAll() []entities.Rate {
 	reply := make(chan []entities.Rate)
-	rr <- commandData{action: getAll, data: reply}
+	rr <- commandData{action: getAllRates, data: reply}
 	return <-reply
 }
 func (rr rateRepo) Close() []entities.Rate {
 	reply := make(chan []entities.Rate)
-	rr <- commandData{action: end, data: reply}
+	rr <- commandData{action: endRates, data: reply}
 	return <-reply
 }
 func (rr rateRepo) GetLast() (entities.Rate, bool) {
 	reply := make(chan interface{})
-	rr <- commandData{action: getLast, result: reply}
+	rr <- commandData{action: getLastRate, result: reply}
 	result := (<-reply).(singleResult)
 	return result.value, result.found
 }
@@ -93,7 +95,19 @@ func (rr rateRepo) Resize(size int) (int, error) {
 	}
 	errReply := make(chan error)
 	reply := make(chan interface{})
-	rr <- commandData{action: resize, size: size, error: errReply, result: reply}
+	rr <- commandData{action: resizeRates, size: size, error: errReply, result: reply}
+	err := <-errReply
+	result := (<-reply).(int)
+	if err != nil {
+		return -1, error(err)
+	} else {
+		return result, nil
+	}
+}
+func (rr rateRepo) Reload(size int) (int, error) {
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr <- commandData{action: reloadRates, size: size, error: errReply, result: reply}
 	err := <-errReply
 	result := (<-reply).(int)
 	if err != nil {
@@ -105,7 +119,7 @@ func (rr rateRepo) Resize(size int) (int, error) {
 func (rr rateRepo) run() {
 	for command := range rr {
 		switch command.action {
-		case push:
+		case pushRate:
 			if command.value.Id < _lastId + 3500 {
 				command.error <- fmt.Errorf("Hour shift required (last: %d, new: %d).", _lastId, command.value.Id)
 				continue
@@ -120,18 +134,18 @@ func (rr rateRepo) run() {
 				}
 			}
 			command.error <- err
-		case getAll:
+		case getAllRates:
 			command.data <- _rates
-		case getLast:
+		case getLastRate:
 			l := len(_rates)
 			if l > 0 {
 				command.result <- singleResult{value:_rates[l - 1], found:true }
 			} else {
 				command.result <- singleResult{value: entities.Rate{}, found:false }
 			}
-		case length:
+		case lengthRates:
 			command.result <- len(_rates)
-		case resize:
+		case resizeRates:
 			l := len(_rates)
 			if l >= command.size {
 				_rates = _rates[l - command.size :]
@@ -141,7 +155,15 @@ func (rr rateRepo) run() {
 				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
 				command.result <- -1
 			}
-		case end:
+		case reloadRates:
+			if err := loadStartRates(); err != nil {
+				command.error <- fmt.Errorf("Repo reload error: %v.", err)
+				command.result <- -1
+			}else {
+				command.error <- nil
+				command.result <- len(_rates)
+			}
+		case endRates:
 			close(rr)
 			command.data <- _rates
 		}

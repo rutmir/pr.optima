@@ -5,7 +5,7 @@ import (
 	"math/cmplx"
 	"math/rand"
 	"pr.optima/src/core/neural/mlpbase"
-	"core/neural/utils"
+	"pr.optima/src/core/neural/utils"
 )
 
 const (

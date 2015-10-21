@@ -23,7 +23,7 @@ var (
 
 func init() {
 	_repo = repository.New(repoSize, true)
-	_rubWork = work.NewWork(6, 5, 20, 1, "RUB")
+	_rubWork = work.NewWork(6, 5, 20, 1, work.TTLbfgs, "RUB")
 
 	_now := time.Now()
 	_next := _now.Round(time.Hour)

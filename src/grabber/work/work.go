@@ -8,6 +8,10 @@ import (
 	"pr.optima/src/repository"
 )
 
+const (
+	TTLbfgs = "L-BFGS"
+)
+
 type Work struct {
 	mlp        *neural.MultiLayerPerceptron
 	frame      int
@@ -15,18 +19,20 @@ type Work struct {
 	rangeCount int
 	hIn        int
 	symbol     string
+	trainType string
 
 	loopCount  int
 	ranges     []float64
 	repo       repository.ResultDataRepo
 }
 
-func NewWork(rCount, step, limit, hIn int, symbol string) *Work {
+func NewWork(rCount, step, limit, hIn int, trainType, symbol string) *Work {
 	result := new(Work)
 	result.symbol = symbol
 	result.frame = limit
 	result.step = step
 	result.rangeCount = rCount
+	result.trainType = trainType
 	result.hIn = hIn
 	result.mlp = neural.MlpCreate1(step, step, hIn)
 
@@ -63,12 +69,18 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		train := make([][]float64, 1)
 		train[0] = convertArrayToFloat64(classes)
 
-		info, _, err := neural.MlpTrainLbfgs(f.mlp, &train, 1, 0.001, 2, 0.01, 0)
-		if err != nil {
-			return -1, err
-		}else if info != 2 {
-			return -1, fmt.Errorf("MlpTrainLbfgs error info param: %d.", info)
+		switch f.trainType {
+		case TTLbfgs:
+			info, _, err := neural.MlpTrainLbfgs(f.mlp, &train, 1, 0.001, 2, 0.01, 0)
+			if err != nil {
+				return -1, err
+			}else if info != 2 {
+				return -1, fmt.Errorf("MlpTrainLbfgs error info param: %d.", info)
+			}
+		default:
+			return -1, fmt.Errorf("Unknowen trainig type.")
 		}
+
 		f.loopCount = 0
 	}
 
@@ -83,12 +95,14 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		rawResult := neural.MlpProcess(f.mlp, &process)
 
 		result := entities.ResultData{
+			RangesCount: int32(f.rangeCount),
+			TrainType:   f.trainType,
+			Limit:       int32(f.frame),
+			Step:        int32(f.step),
 			Symbol:      f.symbol,
 			Timestamp:   _time,
-			Step:        int32(f.step),
-			Limit:       int32(f.frame),
-			Prediction:  int32(math.Floor((*rawResult)[0] + .5)),
-			Source:      convertArrayToInt32(source)}
+			Source:      convertArrayToInt32(source),
+			Prediction:  int32(math.Floor((*rawResult)[0] + .5))}
 
 		if err := f.repo.Push(result); err != nil {
 			return -1, err
