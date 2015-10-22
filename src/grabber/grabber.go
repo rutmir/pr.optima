@@ -31,8 +31,8 @@ func init() {
 		_next = _next.Add(time.Hour)
 	}
 	_next = _next.Add(time.Second)
-	//	ticker := time.NewTicker(_next.Sub(_now))
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(_next.Sub(_now))
+	// ticker := time.NewTicker(time.Second)
 	quit := make(chan struct {})
 
 	for {

@@ -103,7 +103,7 @@ func (rr resultDataRepo) Resize(size int) (int, error) {
 func (rr resultDataRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
-	rr <- commandResultData{action: reloadResultData, error: errReply, result: reply}
+	rr.pipe <- commandResultData{action: reloadResultData, error: errReply, result: reply}
 	err := <-errReply
 	result := (<-reply).(int)
 	if err != nil {
@@ -203,7 +203,7 @@ func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo
 func (rr resultDataRepo) loadStartResultData() error {
 	var dst []entities.ResultData
 	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-timestamp").Limit(rr.limit), &dst); err != nil {
-		return err
+//		return err
 	}
 	if dst != nil {
 		for i := len(dst) - 1; i > -1; i-- {

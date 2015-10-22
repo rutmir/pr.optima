@@ -35,5 +35,5 @@ func (f *ResultData) GetMlpSymbolKey() string {
 	return fmt.Sprintf("%s_%s", f.GetMlpKey(), f.Symbol)
 }
 func (f *ResultData) GetCompositeKey() string {
-	return fmt.Sprintf("%s_%d", f.GetMlpSymbolKey(), f.Symbol, f.Timestamp)
+	return fmt.Sprintf("%s_%d", f.GetMlpSymbolKey(), f.Timestamp)
 }
