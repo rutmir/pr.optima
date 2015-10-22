@@ -10,7 +10,7 @@ type ResultData struct {
 	TrainType   string     `datastore:"trainType,noindex" json:"trainType"`
 	Step        int32      `datastore:"step,noindex" json:"step"`
 	Symbol      string     `datastore:"symbol,index" json:"symbol"`
-	Timestamp   int64      `datastore:"timestamp,index" json:"timestamp"`
+	Timestamp   int64      `datastore:"synctime,index" json:"synctime"`
 	Source      []int32    `datastore:"source,noindex" json:"source"`
 	Prediction  int32      `datastore:"prediction,noindex" json:"prediction"`
 }

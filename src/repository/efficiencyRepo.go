@@ -53,7 +53,7 @@ type EfficiencyRepo interface {
 	Reload() (int, error)
 }
 
-func (rr efficiencyRepo) Sync(value entities.Efficiency) error {
+func (rr *efficiencyRepo) Sync(value entities.Efficiency) error {
 	reply := make(chan error)
 	rr.pipe <- commandEfficiency{action: syncEfficiency, value: value, error: reply}
 	err := <-reply
@@ -63,28 +63,28 @@ func (rr efficiencyRepo) Sync(value entities.Efficiency) error {
 		return nil
 	}
 }
-func (rr efficiencyRepo) Len() int {
+func (rr *efficiencyRepo) Len() int {
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: lengthEfficiency, result: reply}
 	return (<-reply).(int)
 }
-func (rr efficiencyRepo) GetAll() []entities.Efficiency {
+func (rr *efficiencyRepo) GetAll() []entities.Efficiency {
 	reply := make(chan []entities.Efficiency)
 	rr.pipe <- commandEfficiency{action: getAllEfficiency, data: reply}
 	return <-reply
 }
-func (rr efficiencyRepo) Close() []entities.Efficiency {
+func (rr *efficiencyRepo) Close() []entities.Efficiency {
 	reply := make(chan []entities.Efficiency)
 	rr.pipe <- commandEfficiency{action: endEfficiency, data: reply}
 	return <-reply
 }
-func (rr efficiencyRepo) GetLast() (entities.Efficiency, bool) {
+func (rr *efficiencyRepo) GetLast() (entities.Efficiency, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: getLastEfficiency, result: reply}
 	result := (<-reply).(singleEfficiency)
 	return result.value, result.found
 }
-func (rr efficiencyRepo) Reload() (int, error) {
+func (rr *efficiencyRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: reloadEfficiency, error: errReply, result: reply}
@@ -96,7 +96,7 @@ func (rr efficiencyRepo) Reload() (int, error) {
 		return result, nil
 	}
 }
-func (rr efficiencyRepo) run() {
+func (rr *efficiencyRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
 		case syncEfficiency:
@@ -167,10 +167,11 @@ func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, step int32)
 }
 
 // Cloud datastore logic
-func (rr efficiencyRepo) loadStartEfficiency() error {
+func (rr *efficiencyRepo) loadStartEfficiency() error {
 	var dst []entities.Efficiency
 	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("Efficiency").Filter("symbol=", rr.symbol).Filter("trainType=", rr.trainType).Filter("rangesCount=", rr.rangesCount).Filter("limit=", rr.limit).Filter("step=", rr.step), &dst); err != nil {
-		//		return err
+		log.Printf("loadStartEfficiency error: %v", err)
+//		return err
 	}
 	if dst != nil {
 		for i := len(dst) - 1; i > -1; i-- {
@@ -179,7 +180,7 @@ func (rr efficiencyRepo) loadStartEfficiency() error {
 	}
 	return nil
 }
-func (rr efficiencyRepo) insertNewEfficiency(data entities.Efficiency) (*datastore.Key, error) {
+func (rr *efficiencyRepo) insertNewEfficiency(data entities.Efficiency) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "Efficiency", data.GetCompositeKey(), 0, nil), &data)
 }

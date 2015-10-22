@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"pr.optima/src/repository"
+	"log"
 )
 
 const (
@@ -41,7 +42,7 @@ func NewWork(rCount, step, limit, hIn int, trainType, symbol string) *Work {
 	result.ranges = nil
 	result.repo = repository.NewResultDataRepo(limit, true, symbol)
 	result.eff = repository.NewEfficiencyRepo(trainType, symbol, int32(rCount), int32(limit), int32(step))
-	fmt.Printf("ResultDataRepo length %d\tEfficiencyRepo length %d\n", result.repo.Len(), result.eff.Len())
+	log.Printf("Symbol: %s, ResultDataRepo length: %d, EfficiencyRepo length: %d\n", result.symbol, result.repo.Len(), result.eff.Len())
 
 	return result
 }

@@ -16,7 +16,7 @@ type Efficiency struct {
 	LastSD           []int32    `datastore:"lastSD,noindex" json:"lastSD"`
 	LastSR           []int32    `datastore:"lastSR,noindex" json:"lastSR"`
 	Total            int32      `datastore:"total,index" json:"total"`
-	Timestamp        int64      `datastore:"timestamp,index" json:"timestamp"`
+	Timestamp        int64      `datastore:"synctime,index" json:"synctime"`
 }
 
 func (f *Efficiency) ToString() string {

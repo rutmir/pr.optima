@@ -54,7 +54,7 @@ type ResultDataRepo interface {
 	Reload() (int, error)
 }
 
-func (rr resultDataRepo) Push(value entities.ResultData) error {
+func (rr *resultDataRepo) Push(value entities.ResultData) error {
 	reply := make(chan error)
 	rr.pipe <- commandResultData{action: pushResultData, value: value, error: reply}
 	err := <-reply
@@ -64,28 +64,28 @@ func (rr resultDataRepo) Push(value entities.ResultData) error {
 		return nil
 	}
 }
-func (rr resultDataRepo) Len() int {
+func (rr *resultDataRepo) Len() int {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: lengthResultData, result: reply}
 	return (<-reply).(int)
 }
-func (rr resultDataRepo) GetAll() []entities.ResultData {
+func (rr *resultDataRepo) GetAll() []entities.ResultData {
 	reply := make(chan []entities.ResultData)
 	rr.pipe <- commandResultData{action: getAllResultData, data: reply}
 	return <-reply
 }
-func (rr resultDataRepo) Close() []entities.ResultData {
+func (rr *resultDataRepo) Close() []entities.ResultData {
 	reply := make(chan []entities.ResultData)
 	rr.pipe <- commandResultData{action: endResultData, data: reply}
 	return <-reply
 }
-func (rr resultDataRepo) GetLast() (entities.ResultData, bool) {
+func (rr *resultDataRepo) GetLast() (entities.ResultData, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: getLastResultData, result: reply}
 	result := (<-reply).(singleResultData)
 	return result.value, result.found
 }
-func (rr resultDataRepo) Resize(size int) (int, error) {
+func (rr *resultDataRepo) Resize(size int) (int, error) {
 	if size < 0 {
 		return -1, fmt.Errorf("Size parameter: %d must be positive value.", size)
 	}
@@ -100,7 +100,7 @@ func (rr resultDataRepo) Resize(size int) (int, error) {
 		return result, nil
 	}
 }
-func (rr resultDataRepo) Reload() (int, error) {
+func (rr *resultDataRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: reloadResultData, error: errReply, result: reply}
@@ -112,7 +112,7 @@ func (rr resultDataRepo) Reload() (int, error) {
 		return result, nil
 	}
 }
-func (rr resultDataRepo) run() {
+func (rr *resultDataRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
 		case pushResultData:
@@ -200,10 +200,11 @@ func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo
 }
 
 // Cloud datastore logic
-func (rr resultDataRepo) loadStartResultData() error {
+func (rr *resultDataRepo) loadStartResultData() error {
 	var dst []entities.ResultData
-	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-timestamp").Limit(rr.limit), &dst); err != nil {
-//		return err
+	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-synctime").Limit(rr.limit), &dst); err != nil {
+		log.Printf("loadStartResultData error: %v", err)
+		//return err
 	}
 	if dst != nil {
 		for i := len(dst) - 1; i > -1; i-- {
@@ -214,7 +215,7 @@ func (rr resultDataRepo) loadStartResultData() error {
 	}
 	return nil
 }
-func (rr resultDataRepo) insertNewResultData(data entities.ResultData) (*datastore.Key, error) {
+func (rr *resultDataRepo) insertNewResultData(data entities.ResultData) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "ResultData", data.GetCompositeKey(), 0, nil), &data)
 }
