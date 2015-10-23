@@ -4,3 +4,5 @@ src/server/rest.go/.idea/workspace.xml
 src/grabber/.idea/workspace.xml
 src/core/statistic/.idea/workspace.xml
 src/core/neural/.idea/workspace.xml
+src/alglib/alglib/obj
+src/alglib/alglib/bin
