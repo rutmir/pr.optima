@@ -1,8 +1,12 @@
-src/core/entities/.idea/workspace.xml
-src/repository/.idea/workspace.xml
-src/server/rest.go/.idea/workspace.xml
-src/grabber/.idea/workspace.xml
-src/core/statistic/.idea/workspace.xml
-src/core/neural/.idea/workspace.xml
+# User-specific stuff:
+#.idea/workspace.xml
+#.idea/tasks.xml
+#.idea/dictionaries
+#.idea/shelf
+
+workspace.xml
+
+#Visual Studio files
+*.suo
 src/alglib/alglib/obj
 src/alglib/alglib/bin
