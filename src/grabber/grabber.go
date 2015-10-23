@@ -30,7 +30,8 @@ func init() {
 	if _next.Hour() == _now.Hour() {
 		_next = _next.Add(time.Hour)
 	}
-	_next = _next.Add(time.Minute)
+	_next = _next.Add(time.Minute * 2)
+	log.Printf("Start tick: %v.", _next)
 	ticker := time.NewTicker(_next.Sub(_now))
 	// ticker := time.NewTicker(time.Second)
 	quit := make(chan struct {})
@@ -48,10 +49,11 @@ func init() {
 			defer resp.Body.Close()
 
 			now := time.Now()
-			next := now.Round(time.Hour).Add(time.Hour).Add(time.Minute)
+			next := now.Round(time.Hour).Add(time.Hour).Add(time.Minute * 2)
 			dec := json.NewDecoder(resp.Body)
 			if resp.StatusCode == 200 {
 				dec.Decode(&_rate)
+				log.Println(_rate.ToShortString())
 				if err := _repo.Push(entities.Rate{
 					Base    : _rate.Base,
 					Id      : _rate.TimestampUnix,

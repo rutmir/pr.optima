@@ -1,0 +1,19 @@
+# $gcloud preview datastore create-indexes index.yaml --project rp-optima
+# $gcloud preview datastore cleanup-indexes index.yaml --project rp-optima
+indexes:
+
+- kind: ResultData
+  ancestor: no
+  properties:
+  - name: symbol
+  - name: timestamp
+    direction: desc
+
+- kind: Efficiency
+  ancestor: no
+  properties:
+  - name: symbol
+  - name: trainType
+  - name: rangesCount
+  - name: limit
+  - name: step

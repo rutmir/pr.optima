@@ -1,12 +1,13 @@
 package work
 import (
-	"pr.optima/src/core/neural"
+	"fmt"
+	"log"
+	"math"
+
 	"pr.optima/src/core/entities"
 	"pr.optima/src/core/statistic"
-	"fmt"
-	"math"
+	"pr.optima/src/core/neural"
 	"pr.optima/src/repository"
-	"log"
 )
 
 const (
@@ -15,8 +16,8 @@ const (
 
 type Work struct {
 	mlp        *neural.MultiLayerPerceptron
+	limit      int
 	frame      int
-	step       int
 	rangeCount int
 	hIn        int
 	symbol     string
@@ -24,84 +25,89 @@ type Work struct {
 
 	loopCount  int
 	ranges     []float64
-	repo       repository.ResultDataRepo
-	eff        repository.EfficiencyRepo
+	resultRepo repository.ResultDataRepo
+	effRepo    repository.EfficiencyRepo
 }
 
-func NewWork(rCount, step, limit, hIn int, trainType, symbol string) *Work {
+func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 	result := new(Work)
 	result.symbol = symbol
-	result.frame = limit
-	result.step = step
+	result.limit = limit
+	result.frame = frame
 	result.rangeCount = rCount
 	result.trainType = trainType
 	result.hIn = hIn
-	result.mlp = neural.MlpCreate1(step, step, hIn)
+	result.mlp = neural.MlpCreate1(frame, frame, hIn)
 
 	result.loopCount = 0
 	result.ranges = nil
-	result.repo = repository.NewResultDataRepo(limit, true, symbol)
-	result.eff = repository.NewEfficiencyRepo(trainType, symbol, int32(rCount), int32(limit), int32(step))
-	log.Printf("Symbol: %s, ResultDataRepo length: %d, EfficiencyRepo length: %d\n", result.symbol, result.repo.Len(), result.eff.Len())
+	result.resultRepo = repository.NewResultDataRepo(limit, true, symbol)
+	result.effRepo = repository.NewEfficiencyRepo(trainType, symbol, int32(rCount), int32(limit), int32(frame))
+	log.Printf("Created new work - Symbol: %s, ResultDataRepo length: %d, EfficiencyRepo length: %d\n", result.symbol, result.resultRepo.Len(), result.effRepo.Len())
 
 	return result
 }
 
 func (f *Work)Process(rates []entities.Rate) (int, error) {
+	// prepare income data
 	var rawSource []entities.Rate
-	if len(rates) > f.frame + 1 {
-		rawSource = rates[len(rates) - f.frame - 1:]
+	if len(rates) > f.limit + 1 {
+		rawSource = rates[len(rates) - f.limit - 1:]
 	}
 
 	_time := rawSource[len(rawSource) - 1].Id
 	source := extractFloatSet(rawSource, f.symbol)
-	sl := len(source)
+	sourceLength := len(source)
 
-	if f.ranges != nil && len(f.ranges) > 0 && sl > 1 {
-		if class, err := statistic.DetectClass(f.ranges, source[sl - 1] / source[sl - 2]); err != nil {
+	// assess previous prediction
+	if f.ranges != nil && len(f.ranges) > 0 && sourceLength > 1 {
+		if class, err := statistic.DetectClass(f.ranges, source[sourceLength - 1] / source[sourceLength - 2]); err != nil {
 			return -1, err
 		}else {
-			if last, found := f.repo.GetLast(); found {
-				eff, _ := f.eff.GetLast()
+			if last, found := f.resultRepo.GetLast(); found {
+				eff, _ := f.effRepo.GetLast()
 				eff.Total++
 				if last.Prediction == int32(class) {
 					eff.SuccessRange++
 					eff.SuccessDirection++
 					eff.LastSR = append(eff.LastSR, 1)
-					if len(eff.LastSR) > 100 {
-						eff.LastSR = eff.LastSR[len(eff.LastSR) - 100 :]
-					}
 					eff.LastSD = append(eff.LastSD, 1)
-					if len(eff.LastSD) > 100 {
-						eff.LastSD = eff.LastSD[len(eff.LastSD) - 100 :]
-					}
 				}else {
 					rcHalf := float32(f.rangeCount) / 2
 					if rcHalf < float32(class) && rcHalf < float32(last.Prediction) {
 						eff.SuccessDirection++
+						eff.LastSR = append(eff.LastSR, 0)
 						eff.LastSD = append(eff.LastSD, 1)
-						if len(eff.LastSD) > 100 {
-							eff.LastSD = eff.LastSD[len(eff.LastSD) - 100 :]
-						}
+					}else {
+						eff.LastSR = append(eff.LastSR, 0)
+						eff.LastSD = append(eff.LastSD, 0)
 					}
 				}
+				if len(eff.LastSR) > 100 {
+					eff.LastSR = eff.LastSR[len(eff.LastSR) - 100 :]
+				}
+				if len(eff.LastSD) > 100 {
+					eff.LastSD = eff.LastSD[len(eff.LastSD) - 100 :]
+				}
+
 				eff.Timestamp = last.Timestamp
 
-				if err := f.eff.Sync(eff); err != nil {
+				if err := f.effRepo.Sync(eff); err != nil {
 					return -1, err
 				}
 			}
 		}
 	}
 
-	if f.loopCount > f.step || f.ranges == nil {
+	// retrain mlp
+	if f.loopCount > f.frame || f.ranges == nil {
 		var err error
 		if f.ranges, err = statistic.CalculateRanges(source, f.rangeCount); err != nil {
 			f.ranges = nil
 			return -1, err
 		}
 
-		// re train mlp
+		// retrain mlp
 		classes, err := statistic.CalculateClasses(source, f.ranges)
 		if err != nil {
 			return -1, err
@@ -123,11 +129,12 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		}
 
 		f.loopCount = 0
+		log.Printf("Mlp retrained - type: %s, symbol: %s, ranges: %d, limit: %d, frame: %d\n", f.trainType, f.symbol, f.rangeCount, f.limit, f.frame)
 	}
 
 	if f.ranges != nil {
 		f.loopCount++
-		source, err := statistic.CalculateClasses(source[len(source) - f.step - 1:], f.ranges)
+		source, err := statistic.CalculateClasses(source[len(source) - f.frame - 1:], f.ranges)
 		if err != nil {
 			return -1, err
 		}
@@ -138,14 +145,14 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		result := entities.ResultData{
 			RangesCount: int32(f.rangeCount),
 			TrainType:   f.trainType,
-			Limit:       int32(f.frame),
-			Step:        int32(f.step),
+			Limit:       int32(f.limit),
+			Step:        int32(f.frame),
 			Symbol:      f.symbol,
 			Timestamp:   _time,
 			Source:      convertArrayToInt32(source),
 			Prediction:  int32(math.Floor((*rawResult)[0] + .5))}
 
-		if err := f.repo.Push(result); err != nil {
+		if err := f.resultRepo.Push(result); err != nil {
 			return -1, err
 		}
 		if rawResult != nil || len(*rawResult) > 0 {

@@ -202,8 +202,8 @@ func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo
 // Cloud datastore logic
 func (rr *resultDataRepo) loadStartResultData() error {
 	var dst []entities.ResultData
-	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-synctime").Limit(rr.limit), &dst); err != nil {
-		log.Printf("loadStartResultData error: %v", err)
+	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Order("-timestamp").Limit(rr.limit), &dst); err != nil {
+		log.Printf("loadStartResultData error: %v\n", err)
 		//return err
 	}
 	if dst != nil {
