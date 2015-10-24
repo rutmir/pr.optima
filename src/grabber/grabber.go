@@ -8,15 +8,15 @@ import (
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"
 	"pr.optima/src/grabber/work"
+	"fmt"
 )
 
 const (
-	sourceUrl = "https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD"
+	source1Url = "https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD"
+	source2Url = "http://www.apilayer.net/api/live?access_key=85c7d5e8f98fe83fa3fa81aafe489022&currencies=RUB,JPY,GBP,USD,EUR,CNY,CHF" //"85c7d5e8f98fe83fa3fa81aafe489022"
 	repoSize = 200
 )
 var (
-	_rate entities.RateResponse
-	_error entities.ErrorResponse
 	_repo repository.RateRepo
 	_rubWork *work.Work
 )
@@ -40,41 +40,21 @@ func init() {
 		select {
 		case <-ticker.C:
 			ticker.Stop()
-
-			resp, err := http.Get(sourceUrl)
+			success, err := updateFromSource2()
 			if err != nil {
 				log.Fatal(err)
 				return
 			}
-			defer resp.Body.Close()
-
 			now := time.Now()
 			next := now.Round(time.Hour).Add(time.Hour).Add(time.Minute * 2)
-			dec := json.NewDecoder(resp.Body)
-			if resp.StatusCode == 200 {
-				dec.Decode(&_rate)
-				log.Println(_rate.ToShortString())
-				if err := _repo.Push(entities.Rate{
-					Base    : _rate.Base,
-					Id      : _rate.TimestampUnix,
-					RUB     : _rate.Rates["RUB"],
-					JPY     : _rate.Rates["JPY"],
-					GBP     : _rate.Rates["GBP"],
-					USD     : _rate.Rates["USD"],
-					EUR     : _rate.Rates["EUR"],
-					CNY     : _rate.Rates["CNY"],
-					CHF     : _rate.Rates["CHF"]}); err != nil {
-					log.Printf("Push rate to repo error: %v.", err)
-					next = now.Round(time.Minute).Add(time.Minute)
-				}else {
-					// logic here
-					go executeDomainLogic()
-				}
-			} else {
-				dec.Decode(&_error)
-				log.Fatal(_error.ToString())
-				return
+
+			if success == false {
+				next = now.Round(time.Minute).Add(time.Minute)
+			}else {
+				// logic here
+				go executeDomainLogic()
 			}
+
 			ticker = time.NewTicker(next.Sub(now))
 			log.Printf("Next tick: %v;\t Repo length: %d.", next, _repo.Len())
 
@@ -94,6 +74,73 @@ func executeDomainLogic() {
 	}
 
 	log.Printf("nueral result: %d", rub)
+}
+
+func updateFromSource1() (bool, error) {
+	resp, err := http.Get(source1Url)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	dec := json.NewDecoder(resp.Body)
+	if resp.StatusCode == 200 {
+		var rate entities.RateResponse
+		dec.Decode(&rate)
+		log.Println(rate.ToShortString())
+		if err := _repo.Push(entities.Rate{
+			Base    : rate.Base,
+			Id      : rate.TimestampUnix,
+			RUB     : rate.Rates["RUB"],
+			JPY     : rate.Rates["JPY"],
+			GBP     : rate.Rates["GBP"],
+			USD     : rate.Rates["USD"],
+			EUR     : rate.Rates["EUR"],
+			CNY     : rate.Rates["CNY"],
+			CHF     : rate.Rates["CHF"]}); err != nil {
+			log.Printf("Push rate to repo error: %v.", err)
+			return false, nil
+		}
+	}else {
+		var error entities.ErrorResponse
+		dec.Decode(&error)
+		return false, fmt.Errorf(error.ToString())
+	}
+	return true, nil
+}
+
+func updateFromSource2() (bool, error) {
+
+
+	resp, err := http.Get(source2Url)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	dec := json.NewDecoder(resp.Body)
+	if resp.StatusCode == 200 {
+		var rate entities.Rate2Response
+		dec.Decode(&rate)
+		log.Println(rate.ToShortString())
+		if err := _repo.Push(entities.Rate{
+			Base    : rate.Base,
+			Id      : rate.TimestampUnix,
+			RUB     : rate.Quotes["USDRUB"],
+			JPY     : rate.Quotes["USDJPY"],
+			GBP     : rate.Quotes["USDGBP"],
+			USD     : rate.Quotes["USDUSD"],
+			EUR     : rate.Quotes["USDEUR"],
+			CNY     : rate.Quotes["USDCNY"],
+			CHF     : rate.Quotes["USDCHF"]}); err != nil {
+			log.Printf("Push rate to repo error: %v.", err)
+			return false, nil
+		}
+	}else {
+		var error entities.Error2Response
+		dec.Decode(&error)
+		return false, fmt.Errorf(error.ToString())
+	}
+	return true, nil
 }
 
 func main() {}
