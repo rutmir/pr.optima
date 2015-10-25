@@ -15,8 +15,8 @@ const (
 )
 
 type Work struct {
+	Limit      int
 	mlp        *neural.MultiLayerPerceptron
-	limit      int
 	frame      int
 	rangeCount int
 	hIn        int
@@ -32,7 +32,7 @@ type Work struct {
 func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 	result := new(Work)
 	result.symbol = symbol
-	result.limit = limit
+	result.Limit = limit
 	result.frame = frame
 	result.rangeCount = rCount
 	result.trainType = trainType
@@ -51,8 +51,8 @@ func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 func (f *Work)Process(rates []entities.Rate) (int, error) {
 	// prepare income data
 	var rawSource []entities.Rate
-	if len(rates) > f.limit + 1 {
-		rawSource = rates[len(rates) - f.limit - 1:]
+	if len(rates) > f.Limit + 1 {
+		rawSource = rates[len(rates) - f.Limit - 1:]
 	}
 
 	_time := rawSource[len(rawSource) - 1].Id
@@ -129,7 +129,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		}
 
 		f.loopCount = 0
-		log.Printf("Mlp retrained - type: %s, symbol: %s, ranges: %d, limit: %d, frame: %d\n", f.trainType, f.symbol, f.rangeCount, f.limit, f.frame)
+		log.Printf("Mlp retrained - type: %s, symbol: %s, ranges: %d, limit: %d, frame: %d\n", f.trainType, f.symbol, f.rangeCount, f.Limit, f.frame)
 	}
 
 	if f.ranges != nil {
@@ -145,7 +145,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		result := entities.ResultData{
 			RangesCount: int32(f.rangeCount),
 			TrainType:   f.trainType,
-			Limit:       int32(f.limit),
+			Limit:       int32(f.Limit),
 			Step:        int32(f.frame),
 			Symbol:      f.symbol,
 			Timestamp:   _time,

@@ -19,18 +19,22 @@ const (
 var (
 	_repo repository.RateRepo
 	_rubWork *work.Work
+	_eurWork *work.Work
+	_gbpWork *work.Work
 )
 
 func init() {
 	_repo = repository.New(repoSize, true)
 	_rubWork = work.NewWork(6, 5, 20, 1, work.TTLbfgs, "RUB")
+	_eurWork = work.NewWork(6, 5, 20, 1, work.TTLbfgs, "EUR")
+	_gbpWork = work.NewWork(6, 5, 20, 1, work.TTLbfgs, "GBP")
 
 	_now := time.Now()
 	_next := _now.Round(time.Hour)
 	if _next.Hour() == _now.Hour() {
 		_next = _next.Add(time.Hour)
 	}
-	_next = _next.Add(time.Minute * 2)
+	_next = _next.Add(time.Second * 10)
 	log.Printf("Start tick: %v.", _next)
 	ticker := time.NewTicker(_next.Sub(_now))
 	// ticker := time.NewTicker(time.Second)
@@ -46,7 +50,7 @@ func init() {
 				return
 			}
 			now := time.Now()
-			next := now.Round(time.Hour).Add(time.Hour).Add(time.Minute * 2)
+			next := now.Round(time.Hour).Add(time.Hour).Add(time.Second * 10)
 
 			if success == false {
 				next = now.Round(time.Minute).Add(time.Minute)
@@ -66,14 +70,37 @@ func init() {
 }
 
 func executeDomainLogic() {
-	reates := _repo.GetAll()
-	rub, err := _rubWork.Process(reates)
+	rates := _repo.GetAll()
+	//	rub work
+	if _rubWork.Limit < len(rates) {
+		rub, err := _rubWork.Process(rates)
 
-	if err != nil {
-		log.Printf("executeDomainLogic error: %v", err)
+		if err != nil {
+			log.Printf("Rub executeDomainLogic error: %v", err)
+		}
+
+		log.Printf("Rub nueral result: %d", rub)
 	}
 
-	log.Printf("nueral result: %d", rub)
+	if _eurWork.Limit < len(rates) {
+		eur, err := _eurWork.Process(rates)
+
+		if err != nil {
+			log.Printf("Eur executeDomainLogic error: %v", err)
+		}
+
+		log.Printf("Eur nueral result: %d", eur)
+	}
+
+	if _gbpWork.Limit < len(rates) {
+		gbp, err := _gbpWork.Process(rates)
+
+		if err != nil {
+			log.Printf("Gbp executeDomainLogic error: %v", gbp)
+		}
+
+		log.Printf("Gbp nueral result: %d", gbp)
+	}
 }
 
 func updateFromSource1() (bool, error) {
