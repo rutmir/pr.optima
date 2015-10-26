@@ -44,16 +44,17 @@ func init() {
 		select {
 		case <-ticker.C:
 			ticker.Stop()
-			success, err := updateFromSource2()
+			timestamp, success, err := updateFromSource2()
 			if err != nil {
 				log.Fatal(err)
 				return
 			}
 			now := time.Now()
-			next := now.Round(time.Hour).Add(time.Hour).Add(time.Second * 10)
+		//	next := now.Round(time.Hour).Add(time.Hour).Add(time.Second * 10)
+			next := time.Unix(timestamp, 0).Add(time.Hour)
 
 			if success == false {
-				next = now.Round(time.Minute).Add(time.Minute)
+				next = now.Round(time.Minute).Add(time.Minute * 5)
 			}else {
 				// logic here
 				go executeDomainLogic()
@@ -136,18 +137,18 @@ func updateFromSource1() (bool, error) {
 	return true, nil
 }
 
-func updateFromSource2() (bool, error) {
-
-
+func updateFromSource2() (int64, bool, error) {
+	var result int64 = 0
 	resp, err := http.Get(source2Url)
 	if err != nil {
-		return false, err
+		return 0, false, err
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	if resp.StatusCode == 200 {
 		var rate entities.Rate2Response
 		dec.Decode(&rate)
+		result = rate.TimestampUnix
 		log.Println(rate.ToShortString())
 		if err := _repo.Push(entities.Rate{
 			Base    : rate.Base,
@@ -160,14 +161,14 @@ func updateFromSource2() (bool, error) {
 			CNY     : rate.Quotes["USDCNY"],
 			CHF     : rate.Quotes["USDCHF"]}); err != nil {
 			log.Printf("Push rate to repo error: %v.", err)
-			return false, nil
+			return 0, false, nil
 		}
 	}else {
 		var error entities.Error2Response
 		dec.Decode(&error)
-		return false, fmt.Errorf(error.ToString())
+		return 0, false, fmt.Errorf(error.ToString())
 	}
-	return true, nil
+	return result, true, nil
 }
 
 func main() {}

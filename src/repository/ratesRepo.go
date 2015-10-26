@@ -120,8 +120,8 @@ func (rr rateRepo) run() {
 	for command := range rr {
 		switch command.action {
 		case pushRate:
-			if command.value.Id < _lastId + 3500 {
-				command.error <- fmt.Errorf("Hour shift required (last: %d, new: %d).", _lastId, command.value.Id)
+			if command.value.Id < _lastId + 2500 {
+				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", _lastId, command.value.Id)
 				continue
 			}
 			_, err := insertNewRate(command.value)

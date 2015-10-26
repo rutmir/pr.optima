@@ -116,8 +116,8 @@ func (rr *resultDataRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
 		case pushResultData:
-			if command.value.Timestamp < rr.lastId + 3500 {
-				command.error <- fmt.Errorf("Hour shift required (last: %d, new: %d).", rr.lastId, command.value.Timestamp)
+			if command.value.Timestamp < rr.lastId + 2500 {
+				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", rr.lastId, command.value.Timestamp)
 				continue
 			}
 			_, err := rr.insertNewResultData(command.value)
