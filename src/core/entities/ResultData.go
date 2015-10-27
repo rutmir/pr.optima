@@ -13,17 +13,19 @@ type ResultData struct {
 	Timestamp   int64      `datastore:"timestamp,index" json:"timestamp"`
 	Source      []int32    `datastore:"source,noindex" json:"source"`
 	Prediction  int32      `datastore:"prediction,noindex" json:"prediction"`
+	Result      int32      `datastore:"result,noindex" json:"result"`
 }
 
 func (f *ResultData) ToString() string {
-	return fmt.Sprintf("ResultData: Symbol: %s\nRanges: %d\nLimit: %d\nStep: %d\nDatetime: %v\nSource: %v\nPrediction: %d",
+	return fmt.Sprintf("ResultData: Symbol: %s\nRanges: %d\nLimit: %d\nStep: %d\nDatetime: %v\nSource: %v\nPrediction: %d\nResult: %d.",
 		f.Symbol,
 		f.RangesCount,
 		f.Limit,
 		f.Step,
 		f.DateCreated(),
 		f.Source,
-		f.Prediction)
+		f.Prediction,
+		f.Result)
 }
 func (f *ResultData) DateCreated() time.Time {
 	return time.Unix(f.Timestamp, 0).UTC()

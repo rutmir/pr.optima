@@ -67,6 +67,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 			if last, found := f.resultRepo.GetLast(); found {
 				eff, _ := f.effRepo.GetLast()
 				eff.Total++
+				last.Result = int32(class)
 				if last.Prediction == int32(class) {
 					eff.SuccessRange++
 					eff.SuccessDirection++
@@ -92,6 +93,9 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 
 				eff.Timestamp = last.Timestamp
 
+				if err := f.resultRepo.Push(last); err != nil {
+					return -1, err
+				}
 				if err := f.effRepo.Sync(eff); err != nil {
 					return -1, err
 				}
