@@ -154,8 +154,8 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 			Symbol:      f.symbol,
 			Timestamp:   _time,
 			Source:      convertArrayToInt32(source),
-			Prediction:  int32(math.Floor((*rawResult)[0] + .5))}
-
+			Prediction:  int32(math.Floor((*rawResult)[0] + .5)),
+			Result:      -1}
 		if err := f.resultRepo.Push(result); err != nil {
 			return -1, err
 		}
