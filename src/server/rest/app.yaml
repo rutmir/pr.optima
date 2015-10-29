@@ -1,0 +1,21 @@
+application: pr-optima-rest
+version: 1
+runtime: go
+api_version: go1
+
+handlers:
+#- url: /static/(.*)
+#  static_files: static/\1
+#  upload: static/.*
+#  http_headers:
+#    Access-Control-Allow-Origin: .*
+
+- url: /.*
+  script: _go_app
+  secure: always
+
+#skip_files:
+#  key.p12
+#  cors-json-file.json
+#  enable-cors.sh
+#  ^(.*/)?\.bak$
