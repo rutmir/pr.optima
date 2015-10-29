@@ -75,7 +75,9 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 					eff.LastSD = append(eff.LastSD, 1)
 				}else {
 					rcHalf := float32(f.rangeCount) / 2
-					if rcHalf < float32(class) && rcHalf < float32(last.Prediction) {
+					fClass := float32(class)
+					fPrediction := float32(last.Prediction)
+					if (rcHalf <= fClass && rcHalf <= fPrediction) || (rcHalf >= fClass && rcHalf >= fPrediction) {
 						eff.SuccessDirection++
 						eff.LastSR = append(eff.LastSR, 0)
 						eff.LastSD = append(eff.LastSD, 1)
@@ -93,7 +95,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 
 				eff.Timestamp = last.Timestamp
 
-				if err := f.resultRepo.Push(last); err != nil {
+				if err := f.resultRepo.Sync(last); err != nil {
 					return -1, err
 				}
 				if err := f.effRepo.Sync(eff); err != nil {

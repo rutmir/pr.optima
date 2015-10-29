@@ -14,6 +14,7 @@ import (
 
 const (
 	pushResultData commandResultDataAction = iota
+	syncResultData
 	getAllResultData
 	getLastResultData
 	lengthResultData
@@ -46,6 +47,7 @@ type commandResultDataAction int
 
 type ResultDataRepo interface {
 	Push(entities.ResultData) error
+	Sync(entities.ResultData) error
 	Len() int
 	GetAll() []entities.ResultData
 	GetLast() (entities.ResultData, bool)
@@ -57,6 +59,16 @@ type ResultDataRepo interface {
 func (rr *resultDataRepo) Push(value entities.ResultData) error {
 	reply := make(chan error)
 	rr.pipe <- commandResultData{action: pushResultData, value: value, error: reply}
+	err := <-reply
+	if err != nil {
+		return error(err)
+	} else {
+		return nil
+	}
+}
+func (rr *resultDataRepo) Sync(value entities.ResultData) error {
+	reply := make(chan error)
+	rr.pipe <- commandResultData{action: syncResultData, value: value, error: reply}
 	err := <-reply
 	if err != nil {
 		return error(err)
@@ -130,6 +142,23 @@ func (rr *resultDataRepo) run() {
 				}
 			}
 			command.error <- err
+		case syncResultData:
+			//	find and updated in local dataset
+			key := command.value.GetCompositeKey()
+			found := false
+			for i, item := range rr.data {
+				if item.GetCompositeKey() == key {
+					rr.data[i] = command.value
+					found = true
+					break
+				}
+			}
+			if found {
+				_, err := rr.insertNewResultData(command.value)
+				command.error <- err
+			}else{
+				command.error <- fmt.Errorf("ResultDataRepo Sync error: local data with key '%s' not found", key)
+			}
 		case getAllResultData:
 			command.data <- rr.data
 		case getLastResultData:

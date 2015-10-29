@@ -102,7 +102,18 @@ func (rr *efficiencyRepo) run() {
 		case syncEfficiency:
 			_, err := rr.insertNewEfficiency(command.value)
 			if err == nil {
-				rr.data = append(rr.data, command.value)
+				key := command.value.GetCompositeKey()
+				found := false
+				for i, item := range rr.data {
+					if item.GetCompositeKey() == key {
+						rr.data[i] = command.value
+						found = true
+						break
+					}
+				}
+				if !found {
+					rr.data = append(rr.data, command.value)
+				}
 			}
 			command.error <- err
 		case getAllEfficiency:
