@@ -3034,9 +3034,9 @@ func mlpchunkedgradient(network *Multilayerperceptron, xy [][]float64, cstart, c
 	for i = 0; i <= nin - 1; i++ {
 		for j = 0; j <= csize - 1; j++ {
 			if network.ColumnSigmas[i] != 0.0 {
-				network.Chunks[i][j] = (xy[c1 + j][ i] - network.ColumnMeans[i]) / network.ColumnSigmas[i]
+				network.Chunks[i][j] = (xy[c1 + j][i] - network.ColumnMeans[i]) / network.ColumnSigmas[i]
 			}else {
-				network.Chunks[i][j] = xy[c1 + j][ i] - network.ColumnMeans[i]
+				network.Chunks[i][j] = xy[c1 + j][i] - network.ColumnMeans[i]
 			}
 		}
 	}

@@ -16,4 +16,4 @@ indexes:
   - name: trainType
   - name: rangesCount
   - name: limit
-  - name: step
+  - name: frame

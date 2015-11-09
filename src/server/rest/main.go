@@ -1,4 +1,5 @@
 // +build !appengine
+// appcfg.py -A rp-optima update app.yaml
 package main
 import (
 	"log"

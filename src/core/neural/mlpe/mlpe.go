@@ -1,12 +1,11 @@
 package mlpe
-
 import (
 	"fmt"
 	"math"
 	"math/rand"
+	"pr.optima/src/core/neural/utils"
 	"pr.optima/src/core/neural/mlpbase"
 	"pr.optima/src/core/neural/mlptrain"
-	"core/neural/utils"
 )
 
 const (
@@ -17,8 +16,7 @@ const (
 	minrealnumber = 1E-300
 )
 
-type mlpensemble struct
-{
+type mlpensemble struct {
 	structinfo     [...]int
 	ensemblesize   int
 	nin            int
@@ -67,7 +65,7 @@ func MlpeCreate0(nin, nout, ensemblesize int, ensemble *mlpensemble) error {
 	if err := mlpbase.MlpCreate0(nin, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -82,7 +80,7 @@ func MlpeCreate1(nin, nhid, nout, ensemblesize int, ensemble *mlpensemble) error
 	if err := mlpbase.MlpCreate1(nin, nhid, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -97,7 +95,7 @@ func MlpeCreate2(nin, nhid1, nhid2, nout, ensemblesize int, ensemble *mlpensembl
 	if err := mlpbase.MlpCreate2(nin, nhid1, nhid2, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -112,7 +110,7 @@ func MlpeCreateB0(nin, nout int, b, d float64, ensemblesize int, ensemble *mlpen
 	if err := mlpbase.MlpCreateb0(nin, nout, b, d, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -127,7 +125,7 @@ func MlpeCreateB1(nin, nhid, nout int, b, d float64, ensemblesize int, ensemble 
 	if err := mlpbase.MlpCreateb1(nin, nhid, nout, b, d, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -142,7 +140,7 @@ func MlpeCreateB2(nin, nhid1, nhid2, nout int, b, d float64, ensemblesize int, e
 	if err := mlpbase.MlpCreateb2(nin, nhid1, nhid2, nout, b, d, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -157,7 +155,7 @@ func MlpeCreateR0(nin, nout int, a, b float64, ensemblesize int, ensemble *mlpen
 	if err := mlpbase.MlpCreater0(nin, nout, a, b, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -172,7 +170,7 @@ func MlpeCreateR1(nin, nhid, nout int, a, b float64, ensemblesize int, ensemble 
 	if err := mlpbase.MlpCreater1(nin, nhid, nout, a, b, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -187,7 +185,7 @@ func MlpeCreateR2(nin, nhid1, nhid2, nout int, a, b float64, ensemblesize int, e
 	if err := mlpbase.MlpCreater2(nin, nhid1, nhid2, nout, a, b, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -202,7 +200,7 @@ func MlpeCreateC0(nin, nout, ensemblesize int, ensemble *mlpensemble) error {
 	if err := mlpbase.MlpCreatec0(nin, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -217,7 +215,7 @@ func MlpeCreateC1(nin, nhid, nout, ensemblesize int, ensemble *mlpensemble) erro
 	if err := mlpbase.MlpCreatec1(nin, nhid, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -232,7 +230,7 @@ func MlpeCreateC2(nin, nhid1, nhid2, nout, ensemblesize int, ensemble *mlpensemb
 	if err := mlpbase.MlpCreatec2(nin, nhid1, nhid2, nout, net); err != nil {
 		return err
 	}
-	return MlpeCreatefromnetwork(net, ensemblesize, ensemble)
+	return MlpeCreateFromNetwork(net, ensemblesize, ensemble)
 }
 
 /*************************************************************************
@@ -241,14 +239,14 @@ Creates ensemble from network. Only network geometry is copied.
   -- ALGLIB --
 	 Copyright 17.02.2009 by Bochkanov Sergey
 *************************************************************************/
-func MlpeCreatefromnetwork(network *mlpbase.Multilayerperceptron, ensemblesize int, ensemble *mlpensemble) error {
+func MlpeCreateFromNetwork(network *mlpbase.Multilayerperceptron, ensemblesize int, ensemble *mlpensemble) error {
 	i := 0
 	ccount := 0
 	i_ := 0
 	i1_ := 0
 
 
-	if !(ensemblesize > 0) {
+	if ensemblesize <= 0 {
 		return fmt.Errorf("MLPECreate: incorrect ensemble size!")
 	}
 
@@ -1172,13 +1170,13 @@ func MlpeTraines(ensemble *mlpensemble, xy *[][]float64, npoints int, decay floa
 	}
 	if ensemble.issoftmax {
 		for i = 0; i <= npoints - 1; i++ {
-			if utils.RoundInt(xy[i][ ensemble.nin]) < 0 || utils.RoundInt(xy[i][ ensemble.nin]) >= ensemble.nout {
+			if utils.RoundInt(xy[i][ensemble.nin]) < 0 || utils.RoundInt(xy[i][ensemble.nin]) >= ensemble.nout {
 				info = -2
 				return
 			}
 		}
 	}
-	info = 6;
+	info = 6
 
 	//
 	// allocate
@@ -1214,10 +1212,10 @@ func MlpeTraines(ensemble *mlpensemble, xy *[][]float64, npoints int, decay floa
 					// Assign sample to training set
 					//
 					for i_ = 0; i_ <= ccount - 1; i_++ {
-						trnxy[trnsize][ i_] = xy[i][ i_]
+						trnxy[trnsize][i_] = xy[i][i_]
 					}
 					trnsize = trnsize + 1
-				}            else {
+				}else {
 
 					//
 					// Assign sample to validation set

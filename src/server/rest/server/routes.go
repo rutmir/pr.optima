@@ -1,5 +1,4 @@
 package server
-
 import (
 	"net/http"
 	"pr.optima/src/server/rest/server/controllers"
@@ -16,8 +15,8 @@ type Routes []Route
 
 var routes = Routes{
 	Route{"Index", "GET", "/", controllers.Index, },
-	Route{"TodoIndex", "GET", "/todos", controllers.TodoIndex, },
-	Route{"TodoCreate", "POST", "/todos", controllers.TodoCreate, },
-	Route{"TodoShow", "GET", "/todos/{todoId}", controllers.TodoShow, },
 	Route{"GetCurrentData", "GET", "/api/{format}/{symbol}/current", controllers.Current, },
+	Route{"GetAllData", "GET", "/api/{format}/{symbol}/all", controllers.All, },
+	Route{"RefreshData", "GET", "/api/refresh", controllers.Refresh, },
+	Route{"GetAdvisor", "GET", "/api/{format}/{symbol}/advisor", controllers.Advisor, },
 }

@@ -2,6 +2,7 @@ package entities
 import (
 	"time"
 	"fmt"
+	"strings"
 )
 
 type Rate struct {
@@ -16,7 +17,7 @@ type Rate struct {
 	CHF  float32    `datastore:"chf,noindex" json:"CHF"` // Swiss Franc
 }
 
-func (f Rate) ToString() string {
+func (f *Rate) ToString() string {
 	return fmt.Sprintf("Rate: Base: %s\nDatetime: %v\n\tRUB: %v\n\tJPY: %v\n\tGBP: %v\n\tUSD: %v\n\tEUR: %v\n\tCHY: %v\n\tCHF: %v",
 		f.Base,
 		f.Timestamp(),
@@ -28,9 +29,31 @@ func (f Rate) ToString() string {
 		f.CNY,
 		f.CHF)
 }
-func (f Rate) Timestamp() time.Time {
+func (f *Rate) Timestamp() time.Time {
 	return time.Unix(f.Id, 0).UTC()
 }
-func (f Rate) SetTimestamp(timestamp time.Time) {
+func (f *Rate) SetTimestamp(timestamp time.Time) {
 	f.Id = timestamp.Unix()
+}
+func (f *Rate) GetForSymbol(symbol string) (float32, error) {
+	if len(symbol) != 3 {
+		return -1, fmt.Errorf("Unknowen symbol: '%v'", symbol)
+	}
+	switch strings.ToUpper(symbol) {
+	case "RUB":
+		return f.RUB, nil
+	case "JPY":
+		return f.JPY, nil
+	case "GBP":
+		return f.GBP, nil
+	case "USD":
+		return f.USD, nil
+	case "EUR":
+		return f.EUR, nil
+	case "CNY":
+		return f.CNY, nil
+	case "CHF":
+		return f.CHF, nil
+	}
+	return -1, fmt.Errorf("Unknowen symbol: '%v'", symbol)
 }

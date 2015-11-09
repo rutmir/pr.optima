@@ -1,15 +1,15 @@
 package statistic
-
 import (
 	"errors"
 	"sort"
+	"fmt"
 )
 
 func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 	if rangesCount < 1 {
 		return nil, errors.New("the ranges count must be positive value more than 1.")
 	}
-	if list == nil || len(list) < 1 || len(list) < rangesCount {
+	if list == nil || len(list) < rangesCount {
 		return nil, errors.New("quantity of set float32 values must be more than the ranges count and more than 1.")
 	}
 
@@ -26,6 +26,7 @@ func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 	step := total / float64(rangesCount)
 	var ranges = make([]float64, rangesCount - 1)
 
+	check := false
 	for i := 1; i < rangesCount; i++ {
 		level := step * float64(i)
 		var sum float64 = 0
@@ -34,6 +35,9 @@ func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 			sum += element
 			if sum > level {
 				ranges[i - 1] = (element + prev) / 2
+				if i > 1 && ranges[i - 1] != ranges[i - 2] {
+					check = true
+				}
 				break
 			}else {
 				prev = element
@@ -41,7 +45,10 @@ func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 		}
 	}
 
-	return ranges, nil
+	if check {
+		return ranges, nil
+	}
+	return nil, fmt.Errorf("CalculateRanges errer: ranges not vialid.")
 }
 
 func CalculateClasses(list []float32, ranges []float64) ([]int, error) {
@@ -77,12 +84,9 @@ func DetectClass(ranges []float64, element float32) (int, error) {
 	}
 
 	e := float64(element)
-	if (e < ranges[0]) {
-		return 0, nil
-	}
 
-	for i, line := range ranges {
-		if e < line {
+	for i, item := range ranges {
+		if e <= item {
 			return i, nil
 		}
 	}

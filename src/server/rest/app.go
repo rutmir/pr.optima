@@ -15,7 +15,7 @@ var router *mux.Router
 
 func init() {
 	router = server.NewRouter()
-	http.Handle("/", router)
+	http.Handle("/api/", router)
 }
 
 

@@ -1,11 +1,13 @@
 package repository
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"io/ioutil"
+	"net/http"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/appengine"
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/datastore"
 
@@ -36,7 +38,7 @@ type efficiencyRepo struct {
 	pipe        chan commandEfficiency
 	symbol      string
 	limit       int32
-	step        int32
+	frame       int32
 	rangesCount int32
 	trainType   string
 	data        []entities.Efficiency
@@ -123,7 +125,7 @@ func (rr *efficiencyRepo) run() {
 			if l > 0 {
 				command.result <- singleEfficiency{value:rr.data[l - 1], found:true }
 			} else {
-				command.result <- singleEfficiency{value:entities.Efficiency{TrainType:rr.trainType, Symbol:rr.symbol, RangesCount:rr.rangesCount, Limit:rr.limit, Step:rr.step}, found:false }
+				command.result <- singleEfficiency{value:entities.Efficiency{TrainType:rr.trainType, Symbol:rr.symbol, RangesCount:rr.rangesCount, Limit:rr.limit, Frame:rr.frame}, found:false }
 			}
 		case lengthEfficiency:
 			command.result <- len(rr.data)
@@ -141,7 +143,7 @@ func (rr *efficiencyRepo) run() {
 		}
 	}
 }
-func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, step int32) EfficiencyRepo {
+func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, frame int32, r *http.Request) EfficiencyRepo {
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
@@ -154,7 +156,12 @@ func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, step int32)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx := context.Background()
+	var ctx context.Context
+	if r != nil {
+		ctx = appengine.NewContext(r)
+	}else {
+		ctx = context.Background()
+	}
 	client, err := datastore.NewClient(ctx, projectID, cloud.WithTokenSource(conf.TokenSource(ctx)))
 	if err != nil {
 		log.Fatal(err)
@@ -165,7 +172,7 @@ func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, step int32)
 	rr.symbol = symbol
 	rr.trainType = trainType
 	rr.limit = limit
-	rr.step = step
+	rr.frame = frame
 	rr.rangesCount = rangesCount
 	rr.client = client
 
@@ -180,13 +187,17 @@ func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, step int32)
 // Cloud datastore logic
 func (rr *efficiencyRepo) loadStartEfficiency() error {
 	var dst []entities.Efficiency
-	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("Efficiency").Filter("symbol=", rr.symbol).Filter("trainType=", rr.trainType).Filter("rangesCount=", rr.rangesCount).Filter("limit=", rr.limit).Filter("step=", rr.step), &dst); err != nil {
+	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("Efficiency").Filter("symbol=", rr.symbol).Filter("trainType=", rr.trainType).Filter("rangesCount=", rr.rangesCount).Filter("limit=", rr.limit).Filter("frame=", rr.frame), &dst); err != nil {
 		log.Printf("loadStartEfficiency error: %v", err)
-//		return err
+		//		return err
 	}
 	if dst != nil {
-		for i := len(dst) - 1; i > -1; i-- {
-			rr.data = append(rr.data, dst[i])
+		l := len(dst)
+		rr.data = make([]entities.Efficiency, l)
+		idx := 0
+		for i := l - 1; i > -1; i-- {
+			rr.data[idx] = dst[i]
+			idx++
 		}
 	}
 	return nil

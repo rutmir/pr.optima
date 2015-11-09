@@ -41,8 +41,8 @@ func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 
 	result.loopCount = 0
 	result.ranges = nil
-	result.resultRepo = repository.NewResultDataRepo(limit, true, symbol)
-	result.effRepo = repository.NewEfficiencyRepo(trainType, symbol, int32(rCount), int32(limit), int32(frame))
+	result.resultRepo = repository.NewResultDataRepo(limit, true, symbol, nil)
+	result.effRepo = repository.NewEfficiencyRepo(trainType, symbol, int32(rCount), int32(limit), int32(frame), nil)
 	log.Printf("Created new work - Symbol: %s, ResultDataRepo length: %d, EfficiencyRepo length: %d\n", result.symbol, result.resultRepo.Len(), result.effRepo.Len())
 
 	return result
@@ -56,7 +56,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 	}
 
 	_time := rawSource[len(rawSource) - 1].Id
-	source := extractFloatSet(rawSource, f.symbol)
+	source, isValid := extractFloatSet(rawSource, f.symbol)
 	sourceLength := len(source)
 
 	// assess previous prediction
@@ -64,21 +64,17 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		if class, err := statistic.DetectClass(f.ranges, source[sourceLength - 1] / source[sourceLength - 2]); err != nil {
 			return -1, err
 		}else {
-			if last, found := f.resultRepo.GetLast(); found {
+			if last, found := f.resultRepo.Get(rawSource[sourceLength - 2].Id); found {
 				eff, _ := f.effRepo.GetLast()
-				eff.Total++
 				last.Result = int32(class)
 				if last.Prediction == int32(class) {
-					eff.SuccessRange++
-					eff.SuccessDirection++
 					eff.LastSR = append(eff.LastSR, 1)
 					eff.LastSD = append(eff.LastSD, 1)
 				}else {
-					rcHalf := float32(f.rangeCount) / 2
+					rcHalf := float32(f.rangeCount - 1) / 2
 					fClass := float32(class)
 					fPrediction := float32(last.Prediction)
-					if (rcHalf <= fClass && rcHalf <= fPrediction) || (rcHalf >= fClass && rcHalf >= fPrediction) {
-						eff.SuccessDirection++
+					if (rcHalf < fClass && rcHalf < fPrediction) || (rcHalf > fClass && rcHalf > fPrediction) {
 						eff.LastSR = append(eff.LastSR, 0)
 						eff.LastSD = append(eff.LastSD, 1)
 					}else {
@@ -103,6 +99,11 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 				}
 			}
 		}
+	}
+
+	if !isValid {
+		f.ranges = nil
+		return -1, fmt.Errorf("No activity detected.")
 	}
 
 	// retrain mlp
@@ -169,8 +170,9 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 	return -1, nil
 }
 
-func extractFloatSet(rates []entities.Rate, symbol string) []float32 {
-	result := make([]float32, len(rates))
+func extractFloatSet(rates []entities.Rate, symbol string) ([]float32, bool) {
+	l := len(rates)
+	result := make([]float32, l)
 
 	switch symbol {
 	case "CHF":
@@ -189,7 +191,24 @@ func extractFloatSet(rates []entities.Rate, symbol string) []float32 {
 		for i, element := range rates { result[i] = element.USD }
 	}
 
-	return result
+	if l < 2 {
+		return result, true
+	}
+
+	cnt := 3
+	if l < cnt {
+		cnt = l
+	}
+
+	isValid := false
+	for i := 1; i < cnt; i++ {
+		if result[l - i] != result[l - i - 1] {
+			isValid = true
+			break
+		}
+	}
+
+	return result, isValid
 }
 
 func convertArrayToFloat64(a []int) []float64 {

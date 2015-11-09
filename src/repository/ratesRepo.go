@@ -1,11 +1,13 @@
 package repository
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"io/ioutil"
+	"net/http"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/appengine"
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/datastore"
 
@@ -169,7 +171,7 @@ func (rr rateRepo) run() {
 		}
 	}
 }
-func New(limit int, autoResize bool) RateRepo {
+func New(limit int, autoResize bool, r *http.Request) RateRepo {
 	_limit = limit
 	_autoResize = autoResize == true
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
@@ -184,7 +186,12 @@ func New(limit int, autoResize bool) RateRepo {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx := context.Background()
+	var ctx context.Context
+	if r != nil{
+		ctx = appengine.NewContext(r)
+	}else {
+		ctx = context.Background()
+	}
 	client, err := datastore.NewClient(ctx, projectID, cloud.WithTokenSource(conf.TokenSource(ctx)))
 	if err != nil {
 		log.Fatal(err)
@@ -216,10 +223,13 @@ func loadStartRates() error {
 		return err
 	}
 	if dst != nil {
-		for i := len(dst) - 1; i > -1; i-- {
-			_rates = append(_rates, dst[i])
+		l := len(dst)
+		_rates = make([]entities.Rate, l)
+		idx :=0
+		for i := l - 1; i > -1; i-- {
+			_rates[idx] = dst[i]
+			idx++
 		}
-		idx := len(_rates)
 		_lastId = _rates[idx - 1].Id
 	}
 	return nil

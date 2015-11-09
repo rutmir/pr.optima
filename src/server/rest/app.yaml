@@ -1,5 +1,5 @@
-application: pr-optima-rest
-version: 1
+#application: rp-optima
+version: api-01
 runtime: go
 api_version: go1
 
@@ -10,7 +10,11 @@ handlers:
 #  http_headers:
 #    Access-Control-Allow-Origin: .*
 
-- url: /.*
+#- url: /.*
+#  script: _go_app
+#  secure: always
+
+- url: /api/(.*)
   script: _go_app
   secure: always
 

@@ -13,7 +13,6 @@
       <root url="file://$PROJECT_DIR$" />
       <root url="file://C:/Go.Path/src/golang.org/x/net/html/testdata" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/.git" />
-      <root url="file://C:/Go.Path/src/pr.optima/src/server/rest.go/.idea" />
       <root url="file://C:/Go.Path/src/github.com/golang/protobuf/.git" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/test/testdata" />
       <root url="file://C:/Go.Path/src/pr.optima/src/alglib/.vs" />
@@ -28,6 +27,7 @@
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/server/testdata" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/client/testdata" />
       <root url="file://C:/Go.Path/src/golang.org/x/oauth2/.git" />
+      <root url="file://C:/Go.Path/src/pr.optima/src/server/rest/.idea" />
       <root url="file://C:/Go.Path/src/github.com/gorilla/mux/.git" />
       <root url="file://C:/Go.Path/src/core/neural/.idea" />
       <root url="file://C:/Go.Path/src/google.golang.org/api/google-api-go-generator/testdata" />

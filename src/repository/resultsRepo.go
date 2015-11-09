@@ -1,11 +1,13 @@
 package repository
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"io/ioutil"
+	"net/http"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/appengine"
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/datastore"
 
@@ -17,18 +19,20 @@ const (
 	syncResultData
 	getAllResultData
 	getLastResultData
+	getResultData
 	lengthResultData
 	resizeResultData
 	reloadResultData
 	endResultData
 )
 type commandResultData struct {
-	action commandResultDataAction
-	value  entities.ResultData
-	size   int
-	result chan <- interface{}
-	data   chan <- []entities.ResultData
-	error  chan <- error
+	action    commandResultDataAction
+	value     entities.ResultData
+	size      int
+	timestamp int64
+	result    chan <- interface{}
+	data      chan <- []entities.ResultData
+	error     chan <- error
 }
 type singleResultData struct {
 	value entities.ResultData
@@ -51,6 +55,7 @@ type ResultDataRepo interface {
 	Len() int
 	GetAll() []entities.ResultData
 	GetLast() (entities.ResultData, bool)
+	Get(int64) (entities.ResultData, bool)
 	Close() []entities.ResultData
 	Resize(int) (int, error)
 	Reload() (int, error)
@@ -94,6 +99,12 @@ func (rr *resultDataRepo) Close() []entities.ResultData {
 func (rr *resultDataRepo) GetLast() (entities.ResultData, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: getLastResultData, result: reply}
+	result := (<-reply).(singleResultData)
+	return result.value, result.found
+}
+func (rr *resultDataRepo) Get(timestamp int64) (entities.ResultData, bool) {
+	reply := make(chan interface{})
+	rr.pipe <- commandResultData{action: getResultData, timestamp: timestamp, result: reply}
 	result := (<-reply).(singleResultData)
 	return result.value, result.found
 }
@@ -156,7 +167,7 @@ func (rr *resultDataRepo) run() {
 			if found {
 				_, err := rr.insertNewResultData(command.value)
 				command.error <- err
-			}else{
+			}else {
 				command.error <- fmt.Errorf("ResultDataRepo Sync error: local data with key '%s' not found", key)
 			}
 		case getAllResultData:
@@ -166,6 +177,18 @@ func (rr *resultDataRepo) run() {
 			if l > 0 {
 				command.result <- singleResultData{value:rr.data[l - 1], found:true }
 			} else {
+				command.result <- singleResultData{value:entities.ResultData{}, found:false }
+			}
+		case getResultData:
+			found := false
+			for _, item := range rr.data {
+				if item.Timestamp == command.timestamp {
+					command.result <- singleResultData{value:item, found:true }
+					found = true
+					break
+				}
+			}
+			if !found {
 				command.result <- singleResultData{value:entities.ResultData{}, found:false }
 			}
 		case lengthResultData:
@@ -194,7 +217,7 @@ func (rr *resultDataRepo) run() {
 		}
 	}
 }
-func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo {
+func NewResultDataRepo(limit int, autoResize bool, symbol string, r *http.Request) ResultDataRepo {
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
@@ -207,7 +230,12 @@ func NewResultDataRepo(limit int, autoResize bool, symbol string) ResultDataRepo
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx := context.Background()
+	var ctx context.Context
+	if r != nil {
+		ctx = appengine.NewContext(r)
+	}else {
+		ctx = context.Background()
+	}
 	client, err := datastore.NewClient(ctx, projectID, cloud.WithTokenSource(conf.TokenSource(ctx)))
 	if err != nil {
 		log.Fatal(err)
@@ -236,10 +264,13 @@ func (rr *resultDataRepo) loadStartResultData() error {
 		//return err
 	}
 	if dst != nil {
-		for i := len(dst) - 1; i > -1; i-- {
-			rr.data = append(rr.data, dst[i])
+		l := len(dst)
+		rr.data = make([]entities.ResultData, l)
+		idx := 0
+		for i := l - 1; i > -1; i-- {
+			rr.data[idx] = dst[i]
+			idx++
 		}
-		idx := len(rr.data)
 		rr.lastId = rr.data[idx - 1].Timestamp
 	}
 	return nil
