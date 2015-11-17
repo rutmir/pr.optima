@@ -1,0 +1,22 @@
+{
+  "name": "pr-oprima-static",
+  "description": "single page application for pr-optima project.",
+  "main": "",
+  "authors": [
+    "rutmir <rutmir@mail.ru>"
+  ],
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/rutmir/pr.optima",
+  "moduleType": [],
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.4"
+  }
+}

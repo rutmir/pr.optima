@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+    <!-- build:css(.) styles/vendor.css -->
+    <!-- bower:css -->
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css(.tmp) styles/main.css -->
+    <!-- endbuild -->
+</head>
+<body>
+<div style="width:100%; text-align: center; border:solid 1px red;">
+    <select id="currency">
+        <option value="eur" selected="selected">EUR</option>
+        <option value="gbp">GBP</option>
+        <option value="rub">RUB</option>
+        <option value="chf">CHF</option>
+        <option value="cny">CNY</option>
+        <option value="jpy">JPY</option>
+    </select>
+</div>
+<div style=" width:100%; text-align: center;">
+    <canvas id='drawRates' style=" margin: 0 auto;" width='500' height='200'>
+        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
+    </canvas>
+</div>
+<div style="width:100%; text-align: center;">
+    <canvas id='drawNeurons' style=" margin: 0 auto;" width='500' height='200'>
+        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
+    </canvas>
+</div>
+<div style="width:100%; text-align: center; border:solid 1px red;">
+    <input type="button" id="prev" value="prev"/>
+    <input type="button" id="next" value="next"/>
+</div>
+<div style="width:100%; text-align: center;">
+    <canvas id='drawScores' style=' margin: 0 auto;' width='350' height='120'>
+        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
+    </canvas>
+</div>
+
+<!-- build:js(.) scripts/vendor.js -->
+<!-- bower:js -->
+<script src="bower_components/jquery/dist/jquery.js"></script>
+<!-- endbower -->
+<!-- endbuild -->
+
+<!-- build:js({.tmp,app}) scripts/scripts.js -->
+<script src="scripts/index.js"></script>
+<!-- endbuild -->
+</body>
+</html>

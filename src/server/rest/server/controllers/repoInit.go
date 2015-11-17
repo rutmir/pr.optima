@@ -175,6 +175,7 @@ func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.Effici
 		result.Source = make([]int32, len(results[i].Source))
 		copy(result.Source, results[i].Source)
 		result.Timestamp = results[i].Timestamp
+		result.Levels = results[i].RangesCount
 
 		if err := populateDataFor(result.Timestamp, results[i].Step, results[i].Symbol, results, result); err != nil {
 			return nil, nil, nil, fmt.Errorf("PopulateSet error, in populate data: %v.", err)

@@ -10,3 +10,8 @@ workspace.xml
 *.suo
 src/alglib/alglib/obj
 src/alglib/alglib/bin
+
+#grunt
+src/server/front-end/.tmp
+src/server/front-end/node_modules
+src/server/front-end/bower_components
