@@ -28,6 +28,7 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/handlebars/node_modules/optimist/test/_" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/jshint/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/.git" />
+      <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/filesize/.idea" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/wiredep/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-contrib-concat/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-angular-templates/node_modules/.bin" />
@@ -52,8 +53,11 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-contrib-htmlmin/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/storage/testdata" />
       <root url="file://C:/Go.Path/src/core/statistic/.idea" />
+      <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/escodegen/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/datastore/testdata" />
+      <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/.tmp" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/send/node_modules/.bin" />
+      <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/detective/node_modules/.bin" />
       <root url="file://$PROJECT_DIR$" />
       <root url="file://$PROJECT_DIR$/server" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/.idea" />

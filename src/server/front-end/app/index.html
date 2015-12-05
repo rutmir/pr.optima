@@ -1,52 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
+    <title>PROptima Project web pre-alfa</title>
     <meta charset="UTF-8">
-    <title>Welcome</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css"/>
     <!-- endbuild -->
 </head>
 <body>
-<div style="width:100%; text-align: center; border:solid 1px red;">
-    <select id="currency">
-        <option value="eur" selected="selected">EUR</option>
-        <option value="gbp">GBP</option>
-        <option value="rub">RUB</option>
-        <option value="chf">CHF</option>
-        <option value="cny">CNY</option>
-        <option value="jpy">JPY</option>
-    </select>
-</div>
-<div style=" width:100%; text-align: center;">
-    <canvas id='drawRates' style=" margin: 0 auto;" width='500' height='200'>
-        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
-    </canvas>
-</div>
-<div style="width:100%; text-align: center;">
-    <canvas id='drawNeurons' style=" margin: 0 auto;" width='500' height='200'>
-        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
-    </canvas>
-</div>
-<div style="width:100%; text-align: center; border:solid 1px red;">
-    <input type="button" id="prev" value="prev"/>
-    <input type="button" id="next" value="next"/>
-</div>
-<div style="width:100%; text-align: center;">
-    <canvas id='drawScores' style=' margin: 0 auto;' width='350' height='120'>
-        Вы видите это сообщение, потому что Ваш браузер не поддерживает canvas.
-    </canvas>
-</div>
+<nav role="navigation" class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" data-target="#navbarCollapse" data-toggle="collapse" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
 
+            <a href="#"><img class="img-responsive" src="images/brand.png" alt="PROptima"></a>
+            <!--<a href="#" class="navbar-brand">Brand</a>-->
+        </div>
+        <!-- Collection of nav links, forms, and other content for toggling -->
+        <div id="navbarCollapse" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li class="active dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">EUR <span class="caret"></span></a>
+                    <ul class="dropdown-menu inverse-dropdown">
+                        <li><a href="#">EUR</a></li>
+                        <li><a href="#">GBP</a></li>
+                        <li><a href="#">RUB</a></li>
+                        <li><a href="#">CHF</a></li>
+                        <li><a href="#">CNY</a></li>
+                        <li><a href="#">JPY</a></li>
+                    </ul>
+                </li>
+            </ul>
+
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">Project</a></li>
+                <li><a href="#"><span class="visible-xs-inline">Sign In </span><span class="glyphicon glyphicon-log-in"
+                                                                                     aria-hidden="true"></span></a></li>
+            </ul>
+        </div>
+    </div>
+    <!-- /.container-fluid -->
+</nav>
+<div class="container">
+    <div class="row show-grid">
+        <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+            <canvas id='drawRates'>
+                Your browser does not support HTML5.
+            </canvas>
+        </div>
+    </div>
+    <div class="row show-grid">
+        <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+            <canvas id='drawNeurons'>
+                Your browser does not support HTML5.
+            </canvas>
+        </div>
+    </div>
+    <div class="row show-grid">
+        <div class="col-xs-4 col-xs-offset-1 col-sm-3 col-sm-offset-2">
+            <div class="btn-group btn-group-justified" role="group" aria-label="previous button">
+                <div class="btn-group" role="group">
+                    <button type="button" id="prev" class="btn btn-default">prev</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-2 col-sm-2">
+        </div>
+        <div class="col-xs-4 col-sm-3">
+            <div class="btn-group btn-group-justified" role="group" aria-label="next item button">
+                <div class="btn-group" role="group">
+                    <button type="button" id="next" class="btn btn-default">next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row show-grid">
+        <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+            <canvas id='drawScores'>
+                Your browser does not support HTML5.
+            </canvas>
+        </div>
+    </div>
+</div>
 <!-- build:js(.) scripts/vendor.js -->
 <!-- bower:js -->
 <script src="bower_components/jquery/dist/jquery.js"></script>
+<script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
-
 <!-- build:js({.tmp,app}) scripts/scripts.js -->
 <script src="scripts/index.js"></script>
 <!-- endbuild -->

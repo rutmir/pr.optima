@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"pr.optima/src/core/entities"
+	"log"
 )
 
 type operationFormat int
@@ -118,8 +119,10 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 func returnCurrent(w http.ResponseWriter, format operationFormat, symbol string, set *entities.ResultDataResponse) {
 	if set != nil {
+		log.Println("returnCurrent 1")
 		returnResult(w, set, format)
 	}else {
+		log.Println("returnCurrent 2")
 		returnError(w, fmt.Sprintf("Data not exist for symbol: %s.", symbol), http.StatusBadRequest, format)
 	}
 }
@@ -147,6 +150,8 @@ func returnResult(w http.ResponseWriter, obj interface{}, format operationFormat
 		returnJson(w, obj)
 	default:
 		w.Header().Add("Access-Control-Allow-Origin", "*")
+		//w.Header().Set("Cache-Control", "max-age=600, must-revalidate")
+		w.Header().Set("Cache-Control", "no-cache")
 		fmt.Fprintln(w, obj)
 	}
 }
@@ -155,9 +160,12 @@ func returnJson(w http.ResponseWriter, obj interface{}) {
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 	buf, err := json.Marshal(obj)
 	if err != nil {
+		w.Header().Set("Cache-Control", "no-cache")
 		http.Error(w, fmt.Sprintf("json.Marshal failed: %v", err), http.StatusInternalServerError)
 	}else {
 		w.Header().Set("Content-Type", "application/json")
+		//w.Header().Set("Cache-Control", "max-age=600, must-revalidate")
+		w.Header().Set("Cache-Control", "no-cache")
 		w.WriteHeader(http.StatusOK)
 		w.Write(buf)
 	}

@@ -50,6 +50,32 @@ handlers:
   static_files: static/\1
   upload: static/(.*\.(bmp|gif|ico|jpeg|jpg|png))
 
+# font files
+- url: /fonts/(.*\.eot)
+  static_files: static/fonts/\1
+  upload: static/fonts/(.*\.eot)
+  mime_type: application/vnd.ms-fontobject
+
+- url: /fonts/(.*\.svg)
+  static_files: static/fonts/\1
+  upload: static/fonts/(.*\.svg)
+  mime_type: image/svg+xml
+
+- url: /fonts/(.*\.ttf)
+  static_files: static/fonts/\1
+  upload: static/fonts/(.*\.ttf)
+  mime_type: application/font-ttf
+
+- url: /fonts/(.*\.woff)
+  static_files: static/fonts/\1
+  upload: static/fonts/(.*\.woff)
+  mime_type: application/font-woff
+
+- url: /fonts/(.*\.woff2)
+  static_files: static/fonts/\1
+  upload: static/fonts/(.*\.woff2)
+  mime_type: application/font-woff2
+
 # index files
 - url: /(.+)/
   static_files: static/\1/index.html

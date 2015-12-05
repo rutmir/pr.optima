@@ -33,6 +33,7 @@ var (
 	_lastId int64
 	_rates []entities.Rate
 	_client *datastore.Client
+	_ctx context.Context
 )
 
 type commandData struct {
@@ -187,8 +188,9 @@ func New(limit int, autoResize bool, r *http.Request) RateRepo {
 		log.Fatal(err)
 	}
 	var ctx context.Context
-	if r != nil{
+	if r != nil {
 		ctx = appengine.NewContext(r)
+		_ctx = ctx
 	}else {
 		ctx = context.Background()
 	}
@@ -220,12 +222,13 @@ type RateRepoPushResult struct {
 func loadStartRates() error {
 	var dst []entities.Rate
 	if _, err := _client.GetAll(context.Background(), datastore.NewQuery(king).Order("-id").Limit(_limit), &dst); err != nil {
-		return err
+		log.Printf("loadStartRates error: %v\n", err)
+		//return err
 	}
 	if dst != nil {
 		l := len(dst)
 		_rates = make([]entities.Rate, l)
-		idx :=0
+		idx := 0
 		for i := l - 1; i > -1; i-- {
 			_rates[idx] = dst[i]
 			idx++

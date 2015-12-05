@@ -1,0 +1,53 @@
+/* Extra small devices (phones, less than 768px) */
+/* No media query since this is the default in Bootstrap */
+body {
+    padding-top: 55px;
+}
+
+.show-grid {
+    margin-bottom: 15px;
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+}
+
+.inverse-dropdown {
+    background-color: #222;
+    border-color: #080808;
+}
+
+.inverse-dropdown > li > a {
+    color: #999;
+}
+
+.inverse-dropdown > li > a:hover {
+    color: #fff;
+    background-color: #000;
+}
+
+.inverse-dropdown > .divider {
+    background-color: #000;
+}
+
+/* Small devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    canvas {
+
+    }
+}
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    canvas {
+
+    }
+}
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    canvas {
+
+    }
+}

@@ -10,7 +10,7 @@ type ResultDataResponse struct {
 }
 
 func (f *ResultDataResponse) ToString() string {
-	return fmt.Sprintf("ResultDataResponse { Data: %s, Data: %v, Score10: %d, Score100: %d.",
+	return fmt.Sprintf("ResultDataResponse { Data: %v, Score10: %v, Score100: %v.",
 		f.Data.ToString(),
 		f.Score10,
 		f.Score100)

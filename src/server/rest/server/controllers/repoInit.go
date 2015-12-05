@@ -1,10 +1,9 @@
 package controllers
 import (
 	"fmt"
+	"net/http"
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"
-	"log"
-	"net/http"
 )
 
 const historyLimit = 100
@@ -52,7 +51,6 @@ var (
 )
 
 func initializeRepo(r *http.Request) {
-	log.Print("repoInit start")
 	_rateRepo = repository.New(historyLimit + 5, false, r)
 	_rates = _rateRepo.GetAll()
 
@@ -75,34 +73,10 @@ func initializeRepo(r *http.Request) {
 	_jpyEffRepo = repository.NewEfficiencyRepo("L-BFGS", "JPY", 6, 20, 5, r)
 
 	_initialized = true
-	log.Print("repoInit end")
 }
 
 func reloadData(r *http.Request) {
-	if _initialized == false {
-		initializeRepo(r)
-	}else {
-		_rateRepo.Reload()
-		_rates = _rateRepo.GetAll()
-
-		_rubResultRepo.Reload()
-		_rubEffRepo.Reload()
-
-		_eurResultRepo.Reload()
-		_eurEffRepo.Reload()
-
-		_gbpResultRepo.Reload()
-		_gbpEffRepo.Reload()
-
-		_chfResultRepo.Reload()
-		_chfEffRepo.Reload()
-
-		_cnyResultRepo.Reload()
-		_cnyEffRepo.Reload()
-
-		_jpyResultRepo.Reload()
-		_jpyEffRepo.Reload()
-	}
+	initializeRepo(r)
 	rebuildData()
 }
 
@@ -152,12 +126,7 @@ func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.Effici
 	if !found {
 		return nil, nil, nil, fmt.Errorf("PopulateSet error, in get last EFF not found.")
 	}
-	//	score10 := float32(eff.GetDirectionRate10())
-	//	score100 := float32(eff.GetDirectionRate100())
 	score10, score100 := get10_100Score(eff)
-	//	if err != nil {
-	//		return nil, nil, nil, fmt.Errorf("PopulateSet error, in get score: %v.", err)
-	//	}
 	results := resultRepo.GetAll()
 	l := len(results)
 	var resultSet []entities.ResultResponse

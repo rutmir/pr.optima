@@ -144,6 +144,7 @@ func (rr *efficiencyRepo) run() {
 	}
 }
 func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, frame int32, r *http.Request) EfficiencyRepo {
+	// todo: switch from http.Request to contexc.Context
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
@@ -187,6 +188,7 @@ func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, frame int32
 // Cloud datastore logic
 func (rr *efficiencyRepo) loadStartEfficiency() error {
 	var dst []entities.Efficiency
+	// todo: why context.Background() for appengine
 	if _, err := rr.client.GetAll(context.Background(), datastore.NewQuery("Efficiency").Filter("symbol=", rr.symbol).Filter("trainType=", rr.trainType).Filter("rangesCount=", rr.rangesCount).Filter("limit=", rr.limit).Filter("frame=", rr.frame), &dst); err != nil {
 		log.Printf("loadStartEfficiency error: %v", err)
 		//		return err

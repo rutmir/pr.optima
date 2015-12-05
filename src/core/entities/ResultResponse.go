@@ -16,7 +16,7 @@ type ResultResponse struct {
 }
 
 func (f *ResultResponse) ToString() string {
-	return fmt.Sprintf("ResultResponse { Symbol: %s, Timestamp: %v, Data: %v, Source: %v, Prediction: %d, Result: %d, Levels: %d.",
+	return fmt.Sprintf("ResultResponse { Symbol: %s, Timestamp: %v, Data: %v, Source: %v, Prediction: %d, Result: %d, Levels: %d }",
 		f.Symbol,
 		f.DateCreated(),
 		f.Data,

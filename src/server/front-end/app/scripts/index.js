@@ -1,13 +1,13 @@
 "use strict";
 
 var source = null;
-var currentIdx = 0;
+var currentIdx = -1;
 
 var settings = {
     margin: {
         left: 10,
         right: 10,
-        top: 3,
+        top: 10,
         bottom: 6
     },
     timeline: {
@@ -35,6 +35,28 @@ var settings = {
         flg: "#f66"
     }
 };
+
+function resizeCanvas() {
+    var $c1 = $('#drawRates');
+    var w = $c1.parent().width();
+    var w2 = w * 35 / 50;
+    var h1 = (2 * w) / 5;
+    var h2 = w / 50 * 12;
+    $c1.get(0).width = w;
+    $c1.get(0).height = h1;
+    var c = document.getElementById("drawNeurons");
+    c.width = w;
+    c.height = h1;
+    c = document.getElementById("drawScores");
+    c.width = w2;
+    c.height = h2;
+
+    if (source !== null && currentIdx >= 0) {
+        refreshGrafs();
+        printScoreGraf(c, source.score10, source.score100, settings);
+    }
+}
+
 
 function calculateDistance(rateArr) {
     var max = Number.MIN_VALUE;
@@ -169,7 +191,8 @@ function drawTimeline(context, width, height, offsetY, marginLeft, marginRight, 
         datesRange[dt] = datesRange[dt] || [];
         datesRange[dt].push(i);
 
-        var tm = time[i].getHours() + ":" + time[i].getMinutes();
+        var t = time[i];
+        var tm = t.getHours() + ":" + (t.getMinutes() < 10 ? "0" : "") + t.getMinutes();
         var txtM = context.measureText(tm);
         var offsetX = marginLeft + stepSize * i;
 
@@ -383,9 +406,21 @@ $(function () {
         }
     });
 
-    $('#currency').on('change', function () {
-        loadSymbol($(this).val());
+    /*$('#currency').on('change', function () {
+     loadSymbol($(this).val());
+     });*/
+
+    $('#navbarCollapse .dropdown-menu a').click(function () {
+        var $this = $(this);
+        var h = $this.html();
+        if (h !== null && h.length === 3) {
+            $this.parent().parent().prev('a.dropdown-toggle').html(h + ' <span class="caret"></span>');
+            loadSymbol(h);
+        }
     });
+
+    window.addEventListener('resize', resizeCanvas, false);
+    resizeCanvas();
 
     loadSymbol("eur");
 });
