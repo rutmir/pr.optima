@@ -68,22 +68,16 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 				eff, _ := f.effRepo.GetLast()
 				last.Result = int32(class)
 				if last.Prediction == int32(class) {
-					eff.LastSR = append(eff.LastSR, 1)
 					eff.LastSD = append(eff.LastSD, 1)
 				}else {
 					rcHalf := float32(f.rangeCount - 1) / 2
 					fClass := float32(class)
 					fPrediction := float32(last.Prediction)
 					if (rcHalf < fClass && rcHalf < fPrediction) || (rcHalf > fClass && rcHalf > fPrediction) {
-						eff.LastSR = append(eff.LastSR, 0)
 						eff.LastSD = append(eff.LastSD, 1)
 					}else {
-						eff.LastSR = append(eff.LastSR, 0)
 						eff.LastSD = append(eff.LastSD, 0)
 					}
-				}
-				if len(eff.LastSR) > 100 {
-					eff.LastSR = eff.LastSR[len(eff.LastSR) - 100 :]
 				}
 				if len(eff.LastSD) > 100 {
 					eff.LastSD = eff.LastSD[len(eff.LastSD) - 100 :]
@@ -109,7 +103,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 	// retrain mlp
 	if f.loopCount > f.frame || f.ranges == nil {
 		var err error
-		if f.ranges, err = statistic.CalculateRanges(source, f.rangeCount); err != nil {
+		if f.ranges, err = statistic.CalculateEvenRanges(source, f.rangeCount); err != nil {
 			f.ranges = nil
 			return -1, err
 		}

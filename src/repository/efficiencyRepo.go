@@ -144,7 +144,7 @@ func (rr *efficiencyRepo) run() {
 	}
 }
 func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, frame int32, r *http.Request) EfficiencyRepo {
-	// todo: switch from http.Request to contexc.Context
+	// todo: switch from http.Request to context.Context
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
 		log.Fatal(err)
