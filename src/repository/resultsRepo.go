@@ -23,6 +23,7 @@ const (
 	lengthResultData
 	resizeResultData
 	reloadResultData
+	clearResultData
 	endResultData
 )
 type commandResultData struct {
@@ -59,6 +60,7 @@ type ResultDataRepo interface {
 	Close() []entities.ResultData
 	Resize(int) (int, error)
 	Reload() (int, error)
+	Clear(int64) (error)
 }
 
 func (rr *resultDataRepo) Push(value entities.ResultData) error {
@@ -133,6 +135,17 @@ func (rr *resultDataRepo) Reload() (int, error) {
 		return -1, error(err)
 	} else {
 		return result, nil
+	}
+}
+func (rr *resultDataRepo) Clear(date int64) (error) {
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr.pipe <- commandResultData{action: clearResultData, error: errReply, result: reply, timestamp: date}
+	err := <-errReply
+	if err != nil {
+		return error(err)
+	} else {
+		return nil
 	}
 }
 func (rr *resultDataRepo) run() {
@@ -211,6 +224,12 @@ func (rr *resultDataRepo) run() {
 				command.error <- nil
 				command.result <- len(_rates)
 			}
+		case clearResultData:
+			if err := rr.clearDataRepo(command.timestamp); err != nil {
+				command.error <- fmt.Errorf("Repo clear error: %v.", err)
+			}else {
+				command.error <- nil
+			}
 		case endResultData:
 			close(rr.pipe)
 			command.data <- rr.data
@@ -278,4 +297,18 @@ func (rr *resultDataRepo) loadStartResultData() error {
 func (rr *resultDataRepo) insertNewResultData(data entities.ResultData) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "ResultData", data.GetCompositeKey(), 0, nil), &data)
+}
+func (rr *resultDataRepo) clearDataRepo(unixdate int64) (error) {
+	ctx := context.Background()
+	var keys []*datastore.Key
+	var err error
+	if keys, err = rr.client.GetAll(ctx, datastore.NewQuery("ResultData").Filter("symbol=", rr.symbol).Filter("timestamp<", unixdate).KeysOnly(), nil); err != nil {
+		log.Printf("clearDataRepo error: %v", err)
+		//return err
+	}
+	if keys != nil {
+		return rr.client.DeleteMulti(ctx, keys)
+	}else {
+		return err
+	}
 }

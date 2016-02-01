@@ -20,15 +20,17 @@ const (
 	getLastEfficiency
 	lengthEfficiency
 	reloadEfficiency
+	clearEfficiency
 	endEfficiency
 )
 type commandEfficiency struct {
-	action commandEfficiencyAction
-	value  entities.Efficiency
-	size   int
-	result chan <- interface{}
-	data   chan <- []entities.Efficiency
-	error  chan <- error
+	action    commandEfficiencyAction
+	value     entities.Efficiency
+	size      int
+	timestamp int64
+	result    chan <- interface{}
+	data      chan <- []entities.Efficiency
+	error     chan <- error
 }
 type singleEfficiency struct {
 	value entities.Efficiency
@@ -53,6 +55,7 @@ type EfficiencyRepo interface {
 	GetLast() (entities.Efficiency, bool)
 	Close() []entities.Efficiency
 	Reload() (int, error)
+	Clear(int64) (error)
 }
 
 func (rr *efficiencyRepo) Sync(value entities.Efficiency) error {
@@ -98,6 +101,17 @@ func (rr *efficiencyRepo) Reload() (int, error) {
 		return result, nil
 	}
 }
+func (rr *efficiencyRepo) Clear(date int64) (error) {
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr.pipe <- commandEfficiency{action: clearEfficiency, error: errReply, result: reply, timestamp: date}
+	err := <-errReply
+	if err != nil {
+		return error(err)
+	} else {
+		return nil
+	}
+}
 func (rr *efficiencyRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
@@ -136,6 +150,12 @@ func (rr *efficiencyRepo) run() {
 			}else {
 				command.error <- nil
 				command.result <- len(_rates)
+			}
+		case clearEfficiency:
+			if err := rr.clearEfficiency(command.timestamp); err != nil {
+				command.error <- fmt.Errorf("Repo clear error: %v.", err)
+			}else {
+				command.error <- nil
 			}
 		case endEfficiency:
 			close(rr.pipe)
@@ -207,4 +227,18 @@ func (rr *efficiencyRepo) loadStartEfficiency() error {
 func (rr *efficiencyRepo) insertNewEfficiency(data entities.Efficiency) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "Efficiency", data.GetCompositeKey(), 0, nil), &data)
+}
+func (rr *efficiencyRepo) clearEfficiency(unixdate int64) (error) {
+	ctx := context.Background()
+	var keys []*datastore.Key
+	var err error
+	if keys, err = rr.client.GetAll(ctx, datastore.NewQuery("Efficiency").Filter("symbol=", rr.symbol).Filter("trainType=", rr.trainType).Filter("rangesCount=", rr.rangesCount).Filter("limit=", rr.limit).Filter("frame=", rr.frame).Filter("timestamp<", unixdate).KeysOnly(), nil); err != nil {
+		log.Printf("clearEfficiency error: %v", err)
+		//return err
+	}
+	if keys != nil {
+		return rr.client.DeleteMulti(ctx, keys)
+	}else {
+		return err
+	}
 }

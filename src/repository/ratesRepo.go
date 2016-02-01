@@ -21,6 +21,7 @@ const (
 	lengthRates
 	resizeRates
 	reloadRates
+	clearRates
 	endRates
 )
 const (
@@ -37,12 +38,13 @@ var (
 )
 
 type commandData struct {
-	action commandAction
-	value  entities.Rate
-	size   int
-	result chan <- interface{}
-	data   chan <- []entities.Rate
-	error  chan <- error
+	action    commandAction
+	value     entities.Rate
+	size      int
+	timestamp int64
+	result    chan <- interface{}
+	data      chan <- []entities.Rate
+	error     chan <- error
 }
 type singleResult struct {
 	value entities.Rate
@@ -59,6 +61,7 @@ type RateRepo interface {
 	Close() []entities.Rate
 	Resize(int) (int, error)
 	Reload() (int, error)
+	Clear(int64) (error)
 }
 
 func (rr rateRepo) Push(rate entities.Rate) error {
@@ -119,6 +122,17 @@ func (rr rateRepo) Reload() (int, error) {
 		return result, nil
 	}
 }
+func (rr rateRepo) Clear(date int64) (error) {
+	errReply := make(chan error)
+	reply := make(chan interface{})
+	rr <- commandData{action: clearRates, error: errReply, result: reply, timestamp: date}
+	err := <-errReply
+	if err != nil {
+		return error(err)
+	} else {
+		return nil
+	}
+}
 func (rr rateRepo) run() {
 	for command := range rr {
 		switch command.action {
@@ -165,6 +179,12 @@ func (rr rateRepo) run() {
 			}else {
 				command.error <- nil
 				command.result <- len(_rates)
+			}
+		case clearRates:
+			if err := fnClearRates(command.timestamp); err != nil {
+				command.error <- fmt.Errorf("Repo clear error: %v.", err)
+			}else {
+				command.error <- nil
 			}
 		case endRates:
 			close(rr)
@@ -240,4 +260,19 @@ func loadStartRates() error {
 func insertNewRate(rate entities.Rate) (*datastore.Key, error) {
 	ctx := context.Background()
 	return _client.Put(ctx, datastore.NewKey(ctx, king, "", rate.Id, nil), &rate)
+}
+func fnClearRates(unixdate int64) (error) {
+	ctx := context.Background()
+	var keys []*datastore.Key
+	var err error
+
+	if keys, err = _client.GetAll(ctx, datastore.NewQuery(king).Filter("id<", unixdate).KeysOnly(), nil); err != nil {
+		log.Printf("clearRates error: %v", err)
+		return err
+	}
+	if keys != nil {
+		return _client.DeleteMulti(ctx, keys)
+	}else {
+		return err
+	}
 }

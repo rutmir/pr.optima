@@ -8,6 +8,7 @@ import (
 
 	"pr.optima/src/core/entities"
 	"log"
+	"time"
 )
 
 type operationFormat int
@@ -115,6 +116,20 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 	reloadData(r)
 	returnResult(w, "success", _text)
+}
+
+func ClearDB(w http.ResponseWriter, r *http.Request) {
+	authKey := r.Header.Get("Auth")
+	if authKey != _authKey {
+		returnError(w, "Request not authorized", http.StatusUnauthorized, _text)
+		return
+	}
+	errors := clearDbData(time.Now().Add(time.Hour * 24 * (-30)).UTC().Unix())
+	if errors == nil || len(errors) < 1 {
+		returnResult(w, "success", _text)
+	}else {
+		returnError(w, "Error inside reposutory.", http.StatusInternalServerError, _text)
+	}
 }
 
 func returnCurrent(w http.ResponseWriter, format operationFormat, symbol string, set *entities.ResultDataResponse) {

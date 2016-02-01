@@ -1,6 +1,7 @@
 package controllers
 import (
 	"fmt"
+	"sync"
 	"net/http"
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"
@@ -235,4 +236,79 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 		prevRate = _rates[i]
 	}
 	return nil
+}
+
+func clearDbData(unixtime int64) ([]error) {
+	wg := sync.WaitGroup{}
+	wg.Add(13)
+
+	errors := make([]error, 13)
+
+	go func() {
+		errors[0] = _rateRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// RUB
+	go func() {
+		errors[1] = _rubResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[2] = _rubEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// EUR
+	go func() {
+		errors[3] = _eurResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[4] = _eurEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// GBP
+	go func() {
+		errors[5] = _gbpResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[6] = _gbpEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// CHF
+	go func() {
+		errors[7] = _chfResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[8] = _chfEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// CNY
+	go func() {
+		errors[9] = _cnyResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[10] = _cnyEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	// JPY
+	go func() {
+		errors[11] = _jpyResultRepo.Clear(unixtime)
+		wg.Done()
+	}()
+	go func() {
+		errors[12] = _jpyEffRepo.Clear(unixtime)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return errors
 }
