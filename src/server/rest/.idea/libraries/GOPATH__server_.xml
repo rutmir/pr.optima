@@ -6,6 +6,8 @@
       <root url="file://C:/Go.Path/src/core" />
       <root url="file://C:/Go.Path/src/pr.optima" />
       <root url="file://C:/Go.Path/src/github.com" />
+      <root url="file://C:/Go.Path/src/gopkg.in" />
+      <root url="file://C:/Go.Path/src/contetto" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
@@ -15,6 +17,7 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/insight/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/golang.org/x/net/html/testdata" />
       <root url="file://C:/Go.Path/src/github.com/golang/protobuf/.git" />
+      <root url="file://C:/Go.Path/src/gopkg.in/mgo.v2/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/bower/node_modules/bower-config/node_modules/optimist/test/_" />
       <root url="file://C:/Go.Path/src/pr.optima/src/alglib/.vs" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-svgmin/node_modules/.bin" />
@@ -52,6 +55,7 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-contrib-htmlmin/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/github.com/golang/protobuf/protoc-gen-go/testdata" />
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/storage/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/codegangsta/negroni/.git" />
       <root url="file://C:/Go.Path/src/core/statistic/.idea" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/escodegen/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/cloud/datastore/testdata" />
@@ -59,6 +63,7 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/send/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/detective/node_modules/.bin" />
       <root url="file://$PROJECT_DIR$" />
+      <root url="file://C:/Go.Path/src/github.com/cactus/go-statsd-client/.git" />
       <root url="file://$PROJECT_DIR$/server" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/.idea" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/.git" />
@@ -68,7 +73,10 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/repository/.idea" />
       <root url="file://C:/Go.Path/src/pr.optima/src/core/statistic/.idea" />
       <root url="file://C:/Go.Path/src/golang.org/x/net/http2/testdata" />
+      <root url="file://C:/Go.Path/src/github.com/jeffail/gabs/.git" />
       <root url="file://C:/Go.Path/src/google.golang.org/appengine/.git" />
+      <root url="file://C:/Go.Path/src/github.com/rs/cors/.git" />
+      <root url="file://C:/Go.Path/src/github.com/unrolled/secure/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/readline2/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/cross-spawn-async/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/grpc/interop/server/testdata" />
@@ -76,6 +84,7 @@
       <root url="file://C:/Go.Path/src/golang.org/x/oauth2/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/node-gyp/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/grunt-google-cdn/node_modules/.bin" />
+      <root url="file://C:/Go.Path/src/github.com/streadway/amqp/_examples" />
       <root url="file://C:/Go.Path/src/github.com/gorilla/mux/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/google.golang.org/api/.git" />
@@ -91,6 +100,8 @@
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/noptify/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/github.com/gorilla/context/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/optimist/test/_" />
+      <root url="file://C:/Go.Path/src/github.com/streadway/amqp/.git" />
+      <root url="file://C:/Go.Path/src/github.com/rs/xhandler/.git" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/cson/node_modules/.bin" />
       <root url="file://C:/Go.Path/src/pr.optima/src/server/front-end/node_modules/inquirer/node_modules/.bin" />
     </excluded>

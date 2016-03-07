@@ -124,11 +124,15 @@ func ClearDB(w http.ResponseWriter, r *http.Request) {
 		returnError(w, "Request not authorized", http.StatusUnauthorized, _text)
 		return
 	}
-	errors := clearDbData(time.Now().Add(time.Hour * 24 * (-30)).UTC().Unix())
+	errors := clearDbData(time.Now().Add(time.Hour * 24 * (-31)).UTC().Unix(), r)
 	if errors == nil || len(errors) < 1 {
 		returnResult(w, "success", _text)
 	}else {
-		returnError(w, "Error inside reposutory.", http.StatusInternalServerError, _text)
+		errStr := "Errors: \n"
+		for err := range errors {
+			errStr += fmt.Sprintf("%v\n", err)
+		}
+		returnError(w, errStr, http.StatusInternalServerError, _text)
 	}
 }
 

@@ -103,10 +103,12 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 	// retrain mlp
 	if f.loopCount > f.frame || f.ranges == nil {
 		var err error
-		if f.ranges, err = statistic.CalculateEvenRanges(source, f.rangeCount); err != nil {
+		if f.ranges, err = statistic.CalculateEvenRanges2(source, f.rangeCount); err != nil {
 			f.ranges = nil
 			return -1, err
 		}
+
+		log.Printf("%v new ranges: %v", f.symbol, f.ranges)
 
 		// retrain mlp
 		classes, err := statistic.CalculateClasses(source, f.ranges)

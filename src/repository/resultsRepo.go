@@ -10,7 +10,6 @@ import (
 	"google.golang.org/appengine"
 	"google.golang.org/cloud"
 	"google.golang.org/cloud/datastore"
-
 	"pr.optima/src/core/entities"
 )
 
