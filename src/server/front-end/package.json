@@ -2,7 +2,7 @@
   "name": "pr-oprima-static",
   "version": "0.0.1",
   "description": "single page application for pr-optima project.",
-  "license": "UNLICENSED",
+  "license": "UNLICENSED",?
   "private": true,
   "devDependencies": {
     "grunt": "^0.4.5",

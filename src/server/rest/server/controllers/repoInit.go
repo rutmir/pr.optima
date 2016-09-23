@@ -7,11 +7,9 @@ import (
 	"log"
 
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/cloud"
-	"google.golang.org/cloud/datastore"
 	"google.golang.org/appengine"
 	logAE "google.golang.org/appengine/log"
+	"cloud.google.com/go/datastore"
 
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"
@@ -346,16 +344,6 @@ func _getResultDataKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan 
 	out := make(chan keyResult)
 	go func() {
 		defer close(out)
-		conf, err := google.JWTConfigFromJSON(
-			jsonKey,
-			datastore.ScopeDatastore,
-			datastore.ScopeUserEmail,
-		)
-		if err != nil {
-			out <- keyResult{error:err}
-			return
-		}
-
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
@@ -363,7 +351,7 @@ func _getResultDataKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan 
 			ctx = context.Background()
 		}
 
-		client, err := datastore.NewClient(ctx, "rp-optima", cloud.WithTokenSource(conf.TokenSource(ctx)))
+		client, err := datastore.NewClient(ctx, "rp-optima")
 		if err != nil {
 			out <- keyResult{error:err}
 			return
@@ -383,16 +371,6 @@ func _getRatesKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan keyRe
 	out := make(chan keyResult)
 	go func() {
 		defer close(out)
-		conf, err := google.JWTConfigFromJSON(
-			jsonKey,
-			datastore.ScopeDatastore,
-			datastore.ScopeUserEmail,
-		)
-		if err != nil {
-			out <- keyResult{error:err}
-			return
-		}
-
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
@@ -400,7 +378,7 @@ func _getRatesKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan keyRe
 			ctx = context.Background()
 		}
 
-		client, err := datastore.NewClient(ctx, "rp-optima", cloud.WithTokenSource(conf.TokenSource(ctx)))
+		client, err := datastore.NewClient(ctx, "rp-optima")
 		if err != nil {
 			out <- keyResult{error:err}
 			return
@@ -426,16 +404,6 @@ func _deleteKeys(r *http.Request, jsonKey []byte, keys []*datastore.Key) (<-chan
 	out := make(chan error)
 	go func() {
 		defer close(out)
-		conf, err := google.JWTConfigFromJSON(
-			jsonKey,
-			datastore.ScopeDatastore,
-			datastore.ScopeUserEmail,
-		)
-		if err != nil {
-			out <- err
-			return
-		}
-
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
@@ -443,7 +411,7 @@ func _deleteKeys(r *http.Request, jsonKey []byte, keys []*datastore.Key) (<-chan
 			ctx = context.Background()
 		}
 
-		if client, err := datastore.NewClient(ctx, "rp-optima", cloud.WithTokenSource(conf.TokenSource(ctx))); err != nil {
+		if client, err := datastore.NewClient(ctx, "rp-optima"); err != nil {
 			out <- err
 			return
 		}else {

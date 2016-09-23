@@ -2,14 +2,11 @@ package repository
 import (
 	"fmt"
 	"log"
-	"io/ioutil"
 	"net/http"
 
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/appengine"
-	"google.golang.org/cloud"
-	"google.golang.org/cloud/datastore"
+	"cloud.google.com/go/datastore"
 	"pr.optima/src/core/entities"
 )
 
@@ -236,25 +233,14 @@ func (rr *resultDataRepo) run() {
 	}
 }
 func NewResultDataRepo(limit int, autoResize bool, symbol string, r *http.Request) ResultDataRepo {
-	jsonKey, err := ioutil.ReadFile("service-account.key.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	conf, err := google.JWTConfigFromJSON(
-		jsonKey,
-		datastore.ScopeDatastore,
-		datastore.ScopeUserEmail,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
 	var ctx context.Context
 	if r != nil {
 		ctx = appengine.NewContext(r)
 	}else {
 		ctx = context.Background()
 	}
-	client, err := datastore.NewClient(ctx, projectID, cloud.WithTokenSource(conf.TokenSource(ctx)))
+
+	client, err := datastore.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatal(err)
 	}

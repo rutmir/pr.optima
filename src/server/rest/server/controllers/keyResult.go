@@ -1,5 +1,5 @@
 package controllers
-import "google.golang.org/cloud/datastore"
+import "cloud.google.com/go/datastore"
 
 type keyResult struct{
 	keys []*datastore.Key
