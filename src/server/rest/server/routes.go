@@ -2,6 +2,7 @@ package server
 import (
 	"net/http"
 	"pr.optima/src/server/rest/server/controllers"
+	"pr.optima/src/server/rest/server/jobs"
 )
 
 type Route struct {
@@ -20,4 +21,5 @@ var routes = Routes{
 	Route{"GetAdvisor", "GET", "/api/{format}/{symbol}/advisor", controllers.Advisor, },
 	Route{"RefreshData", "GET", "/api/refresh", controllers.Refresh, },
 	Route{"CleanData", "GET", "/api/clean", controllers.ClearDB, },
+	Route{"FetchRates", "GET", "/jobs/fetch-rates", jobs.FetchRatesJob, },
 }

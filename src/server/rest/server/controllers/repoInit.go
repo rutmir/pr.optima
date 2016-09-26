@@ -84,11 +84,6 @@ func initializeRepo(r *http.Request) {
 	_initialized = true
 }
 
-func reloadData(r *http.Request) {
-	initializeRepo(r)
-	rebuildData()
-}
-
 func rebuildData() error {
 	var err error
 	_rubResultList, _rubResult, _rubSignal, err = populateSet(_rubResultRepo, _rubEffRepo)

@@ -19,6 +19,11 @@ handlers:
   script: _go_app
   secure: always
 
+# jobs routes
+- url: /jobs/(.*)
+  script: _go_app
+  secure: always
+
 # static web fron-end routes
 - url: /(.*\.css)
   mime_type: text/css

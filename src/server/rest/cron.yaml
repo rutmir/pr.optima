@@ -1,0 +1,7 @@
+cron:
+- description: Fetch rates job
+  url: /jobs/fetch-rates
+  schedule: every 50 mins
+  retry_parameters:
+    min_backoff_seconds: 180
+    max_doublings: 2

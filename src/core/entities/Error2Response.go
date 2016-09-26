@@ -11,6 +11,6 @@ type ErrorDescription struct {
 	Info string  `json:"info"`
 }
 
-func (f Error2Response) ToString() string {
+func (f *Error2Response) ToString() string {
 	return fmt.Sprintf("Error - Code: %d, Info: %s", f.Error.Code, f.Error.Info)
 }

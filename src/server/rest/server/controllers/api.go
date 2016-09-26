@@ -114,7 +114,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		returnError(w, "Request not authorized", http.StatusUnauthorized, _text)
 		return
 	}
-	reloadData(r)
+	ReloadData(r)
 	returnResult(w, "success", _text)
 }
 
@@ -134,6 +134,11 @@ func ClearDB(w http.ResponseWriter, r *http.Request) {
 		}
 		returnError(w, errStr, http.StatusInternalServerError, _text)
 	}
+}
+
+func ReloadData(r *http.Request) {
+	initializeRepo(r)
+	rebuildData()
 }
 
 func returnCurrent(w http.ResponseWriter, format operationFormat, symbol string, set *entities.ResultDataResponse) {
