@@ -1,14 +1,16 @@
 package controllers
+
 import (
-	"fmt"
-	"strings"
-	"net/http"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gorilla/mux"
 
 	"pr.optima/src/core/entities"
-	"log"
-	"time"
 )
 
 type operationFormat int
@@ -20,8 +22,10 @@ const (
 	_text
 )
 const _authKey = "B7C05147C5A34376B30CEF2F289FBB6C"
+
 var _supportedSymbols = []string{"RUB", "EUR", "GBP", "CHF", "CNY", "JPY"}
 
+// Current - return current data for requested symbol in requested format
 func Current(w http.ResponseWriter, r *http.Request) {
 	format, symbol, found := processFormatAndSymbol(w, r)
 	if found == false {
@@ -51,6 +55,7 @@ func Current(w http.ResponseWriter, r *http.Request) {
 	returnError(w, fmt.Sprintf("Symbol: %v not implmented.", symbol), http.StatusNotImplemented, format)
 }
 
+// All - return all data for requested symbol in requested format
 func All(w http.ResponseWriter, r *http.Request) {
 	format, symbol, found := processFormatAndSymbol(w, r)
 	if found == false {
@@ -80,12 +85,13 @@ func All(w http.ResponseWriter, r *http.Request) {
 	returnError(w, fmt.Sprintf("Symbol: %v not implmented.", symbol), http.StatusNotImplemented, format)
 }
 
+// Advisor - return signal data for requested symbol in requested format
 func Advisor(w http.ResponseWriter, r *http.Request) {
 	format, symbol, found := processFormatAndSymbol(w, r)
 	if found == false {
 		return
 	}
-	switch symbol{
+	switch symbol {
 	case "RUB":
 		returnAdvisor01(w, format, symbol, _rubSignal)
 		return
@@ -108,6 +114,7 @@ func Advisor(w http.ResponseWriter, r *http.Request) {
 	returnError(w, fmt.Sprintf("Symbol: %v not implmented.", symbol), http.StatusNotImplemented, format)
 }
 
+// Refresh - update cached data from repo
 func Refresh(w http.ResponseWriter, r *http.Request) {
 	authKey := r.Header.Get("Auth")
 	if authKey != _authKey {
@@ -118,16 +125,17 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	returnResult(w, "success", _text)
 }
 
+// ClearDB - delete old data from database
 func ClearDB(w http.ResponseWriter, r *http.Request) {
 	authKey := r.Header.Get("Auth")
 	if authKey != _authKey {
 		returnError(w, "Request not authorized", http.StatusUnauthorized, _text)
 		return
 	}
-	errors := clearDbData(time.Now().Add(time.Hour * 24 * (-31)).UTC().Unix(), r)
+	errors := clearDbData(time.Now().Add(time.Hour*24*(-31)).UTC().Unix(), r)
 	if errors == nil || len(errors) < 1 {
 		returnResult(w, "success", _text)
-	}else {
+	} else {
 		errStr := "Errors: \n"
 		for err := range errors {
 			errStr += fmt.Sprintf("%v\n", err)
@@ -136,6 +144,7 @@ func ClearDB(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ReloadData - update cached data from repo
 func ReloadData(r *http.Request) {
 	initializeRepo(r)
 	rebuildData()
@@ -145,7 +154,7 @@ func returnCurrent(w http.ResponseWriter, format operationFormat, symbol string,
 	if set != nil {
 		log.Println("returnCurrent 1")
 		returnResult(w, set, format)
-	}else {
+	} else {
 		log.Println("returnCurrent 2")
 		returnError(w, fmt.Sprintf("Data not exist for symbol: %s.", symbol), http.StatusBadRequest, format)
 	}
@@ -154,7 +163,7 @@ func returnCurrent(w http.ResponseWriter, format operationFormat, symbol string,
 func returnAdvisor01(w http.ResponseWriter, format operationFormat, symbol string, signal *entities.Signal) {
 	if signal != nil {
 		returnResult(w, *signal, format)
-	}else {
+	} else {
 		returnError(w, fmt.Sprintf("Data not exist for symbol: %s.", symbol), http.StatusBadRequest, format)
 	}
 }
@@ -162,7 +171,7 @@ func returnAdvisor01(w http.ResponseWriter, format operationFormat, symbol strin
 func returnError(w http.ResponseWriter, err string, code int, format operationFormat) {
 	switch format {
 	case _json:
-		writeErrorJSON(w, code, entities.ErrorResponse{Error : true, Status : code, Message: err })
+		writeErrorJSON(w, code, entities.ErrorResponse{Error: true, Status: code, Message: err})
 	default:
 		writeError(w, err, code)
 	}
@@ -171,7 +180,7 @@ func returnError(w http.ResponseWriter, err string, code int, format operationFo
 func returnResult(w http.ResponseWriter, obj interface{}, format operationFormat) {
 	switch format {
 	case _json:
-		returnJson(w, obj)
+		returnJSON(w, obj)
 	default:
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		//w.Header().Set("Cache-Control", "max-age=600, must-revalidate")
@@ -180,13 +189,13 @@ func returnResult(w http.ResponseWriter, obj interface{}, format operationFormat
 	}
 }
 
-func returnJson(w http.ResponseWriter, obj interface{}) {
+func returnJSON(w http.ResponseWriter, obj interface{}) {
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 	buf, err := json.Marshal(obj)
 	if err != nil {
 		w.Header().Set("Cache-Control", "no-cache")
 		http.Error(w, fmt.Sprintf("json.Marshal failed: %v", err), http.StatusInternalServerError)
-	}else {
+	} else {
 		w.Header().Set("Content-Type", "application/json")
 		//w.Header().Set("Cache-Control", "max-age=600, must-revalidate")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -219,6 +228,7 @@ func processFormatAndSymbol(w http.ResponseWriter, r *http.Request) (operationFo
 	return _text, symbol, false
 }
 
+/*
 func getSymbol(r *http.Request) (string, error) {
 	vars := mux.Vars(r)
 	symbol := strings.ToUpper(vars["symbol"])
@@ -228,6 +238,7 @@ func getSymbol(r *http.Request) (string, error) {
 	}
 	return symbol, fmt.Errorf("Symbol: %v not supported.", symbol)
 }
+*/
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {

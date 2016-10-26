@@ -1,17 +1,22 @@
 package jobs
+
 import (
 	"fmt"
 	"log"
 	"math"
 
-	"pr.optima/src/core/entities"
-	"pr.optima/src/core/statistic"
-	"pr.optima/src/core/neural"
-	"pr.optima/src/repository"
 	"net/http"
+
+	"errors"
+
+	"pr.optima/src/core/entities"
+	"pr.optima/src/core/neural"
+	"pr.optima/src/core/statistic"
+	"pr.optima/src/repository"
 )
 
 const (
+	// TTLbfgs type of training neurones
 	TTLbfgs = "L-BFGS"
 )
 
@@ -24,11 +29,11 @@ type fetchRatesWorkItem struct {
 	symbol     string
 	trainType  string
 
-	loopCount  int
-	ranges     []float64
+	loopCount int
+	ranges    []float64
 }
 
-func NewFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol string) *fetchRatesWorkItem {
+func newFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol string) *fetchRatesWorkItem {
 	result := new(fetchRatesWorkItem)
 	result.symbol = symbol
 	result.Limit = limit
@@ -45,58 +50,59 @@ func NewFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol stri
 	return result
 }
 
-func (f *fetchRatesWorkItem)Process(rates []entities.Rate, r *http.Request) (int, error) {
+func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (int, error) {
 	// prepare income data
 	var rawSource []entities.Rate
-	if len(rates) > f.Limit + 1 {
-		rawSource = rates[len(rates) - f.Limit - 1:]
+	if len(rates) > f.Limit+1 {
+		rawSource = rates[len(rates)-f.Limit-1:]
 	}
 
-	_time := rawSource[len(rawSource) - 1].Id
+	_time := rawSource[len(rawSource)-1].Id
 	source, isValid := extractFloatSet(rawSource, f.symbol)
 	sourceLength := len(source)
 
 	// assess previous prediction
 	if f.ranges != nil && len(f.ranges) > 0 && sourceLength > 1 {
-		if class, err := statistic.DetectClass(f.ranges, source[sourceLength - 1] / source[sourceLength - 2]); err != nil {
+		class, err := statistic.DetectClass(f.ranges, source[sourceLength-1]/source[sourceLength-2])
+		if err != nil {
 			return -1, err
-		}else {
-			resultRepo := repository.NewResultDataRepo(f.Limit, true, f.symbol, r)
-			effRepo := repository.NewEfficiencyRepo(f.trainType, f.symbol, int32(f.rangeCount), int32(f.Limit), int32(f.frame), nil)
-			if last, found := resultRepo.Get(rawSource[sourceLength - 2].Id); found {
-				eff, _ := effRepo.GetLast()
-				last.Result = int32(class)
-				if last.Prediction == int32(class) {
+		}
+		resultRepo := repository.NewResultDataRepo(f.Limit, true, f.symbol, r)
+		effRepo := repository.NewEfficiencyRepo(f.trainType, f.symbol, int32(f.rangeCount), int32(f.Limit), int32(f.frame), nil)
+		if last, found := resultRepo.Get(rawSource[sourceLength-2].Id); found {
+			eff, _ := effRepo.GetLast()
+			last.Result = int32(class)
+			if last.Prediction == int32(class) {
+				eff.LastSD = append(eff.LastSD, 1)
+			} else {
+				rcHalf := float32(f.rangeCount-1) / 2
+				fClass := float32(class)
+				fPrediction := float32(last.Prediction)
+				if (rcHalf < fClass && rcHalf < fPrediction) || (rcHalf > fClass && rcHalf > fPrediction) {
 					eff.LastSD = append(eff.LastSD, 1)
-				}else {
-					rcHalf := float32(f.rangeCount - 1) / 2
-					fClass := float32(class)
-					fPrediction := float32(last.Prediction)
-					if (rcHalf < fClass && rcHalf < fPrediction) || (rcHalf > fClass && rcHalf > fPrediction) {
-						eff.LastSD = append(eff.LastSD, 1)
-					}else {
-						eff.LastSD = append(eff.LastSD, 0)
-					}
-				}
-				if len(eff.LastSD) > 100 {
-					eff.LastSD = eff.LastSD[len(eff.LastSD) - 100 :]
-				}
-
-				eff.Timestamp = last.Timestamp
-
-				if err := resultRepo.Sync(last); err != nil {
-					return -1, err
-				}
-				if err := effRepo.Sync(eff); err != nil {
-					return -1, err
+				} else {
+					eff.LastSD = append(eff.LastSD, 0)
 				}
 			}
+			if len(eff.LastSD) > 100 {
+				eff.LastSD = eff.LastSD[len(eff.LastSD)-100:]
+			}
+
+			eff.Timestamp = last.Timestamp
+
+			if err := resultRepo.Sync(last); err != nil {
+				return -1, err
+			}
+			if err := effRepo.Sync(eff); err != nil {
+				return -1, err
+			}
 		}
+
 	}
 
 	if !isValid {
 		f.ranges = nil
-		return -1, fmt.Errorf("No activity detected.")
+		return -1, errors.New("no activity detected")
 	}
 
 	// retrain mlp
@@ -123,11 +129,11 @@ func (f *fetchRatesWorkItem)Process(rates []entities.Rate, r *http.Request) (int
 			info, _, err := neural.MlpTrainLbfgs(f.mlp, &train, 1, 0.001, 2, 0.01, 0)
 			if err != nil {
 				return -1, err
-			}else if info != 2 {
+			} else if info != 2 {
 				return -1, fmt.Errorf("MlpTrainLbfgs error info param: %d.", info)
 			}
 		default:
-			return -1, fmt.Errorf("Unknowen trainig type.")
+			return -1, errors.New("unknowen trainig type")
 		}
 
 		f.loopCount = 0
@@ -136,7 +142,7 @@ func (f *fetchRatesWorkItem)Process(rates []entities.Rate, r *http.Request) (int
 
 	if f.ranges != nil {
 		f.loopCount++
-		source, err := statistic.CalculateClasses(source[len(source) - f.frame - 1:], f.ranges)
+		source, err := statistic.CalculateClasses(source[len(source)-f.frame-1:], f.ranges)
 		if err != nil {
 			return -1, err
 		}
@@ -172,19 +178,33 @@ func extractFloatSet(rates []entities.Rate, symbol string) ([]float32, bool) {
 
 	switch symbol {
 	case "CHF":
-		for i, element := range rates { result[i] = element.CHF }
+		for i, element := range rates {
+			result[i] = element.CHF
+		}
 	case "CNY":
-		for i, element := range rates { result[i] = element.CNY }
+		for i, element := range rates {
+			result[i] = element.CNY
+		}
 	case "EUR":
-		for i, element := range rates { result[i] = element.EUR }
+		for i, element := range rates {
+			result[i] = element.EUR
+		}
 	case "GBP":
-		for i, element := range rates { result[i] = element.GBP }
+		for i, element := range rates {
+			result[i] = element.GBP
+		}
 	case "JPY":
-		for i, element := range rates { result[i] = element.JPY }
+		for i, element := range rates {
+			result[i] = element.JPY
+		}
 	case "RUB":
-		for i, element := range rates { result[i] = element.RUB }
+		for i, element := range rates {
+			result[i] = element.RUB
+		}
 	case "USD":
-		for i, element := range rates { result[i] = element.USD }
+		for i, element := range rates {
+			result[i] = element.USD
+		}
 	}
 
 	if l < 2 {
@@ -198,7 +218,7 @@ func extractFloatSet(rates []entities.Rate, symbol string) ([]float32, bool) {
 
 	isValid := false
 	for i := 1; i < cnt; i++ {
-		if result[l - i] != result[l - i - 1] {
+		if result[l-i] != result[l-i-1] {
 			isValid = true
 			break
 		}

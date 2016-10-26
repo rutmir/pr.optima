@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"encoding/json"
 	"net/http"
@@ -6,6 +7,7 @@ import (
 	"pr.optima/src/repository"
 )
 
+// TodoIndex - test example of rest API endpoint
 func TodoIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)

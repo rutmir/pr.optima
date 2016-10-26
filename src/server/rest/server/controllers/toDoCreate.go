@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"encoding/json"
 	"io"
@@ -13,6 +14,8 @@ import (
 Test with this curl command:
 curl -H "Content-Type: application/json" -d '{"name":"New Todo_"}' http://localhost:8080/todos
 */
+
+// TodoCreate - test example of rest API endpoint
 func TodoCreate(w http.ResponseWriter, r *http.Request) {
 	var todo entities.Todo
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))

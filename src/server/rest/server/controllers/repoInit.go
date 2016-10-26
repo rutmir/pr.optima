@@ -1,15 +1,18 @@
 package controllers
+
 import (
 	"fmt"
-//	"sync"
-	"net/http"
+	//	"sync"
 	"io/ioutil"
 	"log"
+	"net/http"
 
+	"cloud.google.com/go/datastore"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	logAE "google.golang.org/appengine/log"
-	"cloud.google.com/go/datastore"
+
+	"errors"
 
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"
@@ -19,48 +22,48 @@ const historyLimit = 100
 
 var (
 	_initialized = false
-	_rateRepo repository.RateRepo
-	_rates []entities.Rate
-// RUB
+	_rateRepo    repository.RateRepo
+	_rates       []entities.Rate
+	// RUB
 	_rubResultRepo repository.ResultDataRepo
-	_rubEffRepo repository.EfficiencyRepo
+	_rubEffRepo    repository.EfficiencyRepo
 	_rubResultList *entities.ResultDataListResponse
-	_rubResult *entities.ResultDataResponse
-	_rubSignal *entities.Signal
-// EUR
+	_rubResult     *entities.ResultDataResponse
+	_rubSignal     *entities.Signal
+	// EUR
 	_eurResultRepo repository.ResultDataRepo
-	_eurEffRepo repository.EfficiencyRepo
+	_eurEffRepo    repository.EfficiencyRepo
 	_eurResultList *entities.ResultDataListResponse
-	_eurResult *entities.ResultDataResponse
-	_eurSignal *entities.Signal
-// GBP
+	_eurResult     *entities.ResultDataResponse
+	_eurSignal     *entities.Signal
+	// GBP
 	_gbpResultRepo repository.ResultDataRepo
-	_gbpEffRepo repository.EfficiencyRepo
+	_gbpEffRepo    repository.EfficiencyRepo
 	_gbpResultList *entities.ResultDataListResponse
-	_gbpResult *entities.ResultDataResponse
-	_gbpSignal *entities.Signal
-// CHF
+	_gbpResult     *entities.ResultDataResponse
+	_gbpSignal     *entities.Signal
+	// CHF
 	_chfResultRepo repository.ResultDataRepo
-	_chfEffRepo repository.EfficiencyRepo
+	_chfEffRepo    repository.EfficiencyRepo
 	_chfResultList *entities.ResultDataListResponse
-	_chfResult *entities.ResultDataResponse
-	_chfSignal *entities.Signal
-// CNY
+	_chfResult     *entities.ResultDataResponse
+	_chfSignal     *entities.Signal
+	// CNY
 	_cnyResultRepo repository.ResultDataRepo
-	_cnyEffRepo repository.EfficiencyRepo
+	_cnyEffRepo    repository.EfficiencyRepo
 	_cnyResultList *entities.ResultDataListResponse
-	_cnyResult *entities.ResultDataResponse
-	_cnySignal *entities.Signal
-// JPY
+	_cnyResult     *entities.ResultDataResponse
+	_cnySignal     *entities.Signal
+	// JPY
 	_jpyResultRepo repository.ResultDataRepo
-	_jpyEffRepo repository.EfficiencyRepo
+	_jpyEffRepo    repository.EfficiencyRepo
 	_jpyResultList *entities.ResultDataListResponse
-	_jpyResult *entities.ResultDataResponse
-	_jpySignal *entities.Signal
+	_jpyResult     *entities.ResultDataResponse
+	_jpySignal     *entities.Signal
 )
 
 func initializeRepo(r *http.Request) {
-	_rateRepo = repository.New(historyLimit + 5, false, r)
+	_rateRepo = repository.New(historyLimit+5, false, r)
 	_rates = _rateRepo.GetAll()
 
 	_rubResultRepo = repository.NewResultDataRepo(historyLimit, false, "RUB", r)
@@ -128,7 +131,7 @@ func rebuildData() error {
 func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.EfficiencyRepo) (*entities.ResultDataListResponse, *entities.ResultDataResponse, *entities.Signal, error) {
 	eff, found := effRepo.GetLast()
 	if !found {
-		return nil, nil, nil, fmt.Errorf("PopulateSet error, in get last EFF not found.")
+		return nil, nil, nil, errors.New("populateSet error, in get last EFF not found")
 	}
 	score10, score100 := get10_100Score(eff)
 	results := resultRepo.GetAll()
@@ -141,7 +144,7 @@ func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.Effici
 	resultSet = make([]entities.ResultResponse, limit)
 
 	counter := 1
-	for i := l - 1; i >= l - limit && i >= 0; i-- {
+	for i := l - 1; i >= l-limit && i >= 0; i-- {
 		result := new(entities.ResultResponse)
 		result.Prediction = results[i].Prediction
 		result.Result = results[i].Result
@@ -154,7 +157,7 @@ func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.Effici
 			return nil, nil, nil, fmt.Errorf("PopulateSet error, in populate data: %v.", err)
 		}
 		result.Symbol = results[i].Symbol
-		resultSet[limit - counter] = *result
+		resultSet[limit-counter] = *result
 		counter++
 	}
 	var signal *entities.Signal
@@ -173,7 +176,7 @@ func populateSet(resultRepo repository.ResultDataRepo, effRepo repository.Effici
 	retList.Score100 = score100
 
 	retCurrent := new(entities.ResultDataResponse)
-	retCurrent.Data = *(resultSet[len(resultSet) - 1].Clone())
+	retCurrent.Data = *(resultSet[len(resultSet)-1].Clone())
 	retCurrent.Score10 = score10
 	retCurrent.Score100 = score100
 
@@ -187,11 +190,11 @@ func get10_100Score(eff entities.Efficiency) (float32, float32) {
 		index = l
 	}
 
-	var tenSum int32 = 0
-	var hundredSum int32 = 0
+	var tenSum int32
+	var hundredSum int32
 
 	for i := 1; i <= index; i++ {
-		item := eff.LastSD[l - i]
+		item := eff.LastSD[l-i]
 		if i <= 10 {
 			tenSum += item
 		}
@@ -199,15 +202,14 @@ func get10_100Score(eff entities.Efficiency) (float32, float32) {
 	}
 	if index < 10 {
 		return float32(tenSum) / float32(index), float32(hundredSum) / float32(index)
-	}else {
-		return float32(tenSum) / 10, float32(hundredSum) / float32(index)
 	}
+	return float32(tenSum) / 10, float32(hundredSum) / float32(index)
 }
 
 func populateDataFor(timestamp int64, frame int32, symbol string, results []entities.ResultData, result *entities.ResultResponse) error {
 	l := len(_rates)
 	addExtendedData := false
-	if _rates[l - 1].Id > timestamp {
+	if _rates[l-1].Id > timestamp {
 		addExtendedData = true
 		frame++
 	}
@@ -223,8 +225,8 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 				if err != nil {
 					return fmt.Errorf("ExtrudeDataFor error: %v", err)
 				}
-				result.Data[frame - counter] = value
-				result.Time[frame - counter] = prevRate.Id
+				result.Data[frame-counter] = value
+				result.Time[frame-counter] = prevRate.Id
 				counter++
 				addExtendedData = false
 			}
@@ -232,8 +234,8 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 			if err != nil {
 				return fmt.Errorf("ExtrudeDataFor error: %v", err)
 			}
-			result.Data[frame - counter] = value
-			result.Time[frame - counter] = _rates[i].Id
+			result.Data[frame-counter] = value
+			result.Time[frame-counter] = _rates[i].Id
 			counter++
 		}
 		prevRate = _rates[i]
@@ -241,7 +243,7 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 	return nil
 }
 
-func clearDbData(unixtime int64, r *http.Request) ([]error) {
+func clearDbData(unixtime int64, r *http.Request) []error {
 	errors := make([]error, 0, 2)
 	jsonKey, err := ioutil.ReadFile("service-account.key.json")
 	if err != nil {
@@ -255,26 +257,28 @@ func clearDbData(unixtime int64, r *http.Request) ([]error) {
 	//wg.Wait()
 
 	resultDataChan := _getResultDataKeys(r, jsonKey, unixtime)
-	var resultDataErrorChan <-chan error = nil
+	var resultDataErrorChan <-chan error
 	rateChan := _getRatesKeys(r, jsonKey, unixtime)
-	var rateErrorChan <-chan error = nil
+	var rateErrorChan <-chan error
 
 	resultDataChanClose, rateChanClose := false, true
 	errorDataChanClose, errorChanClose := false, true
 
 	for {
-		if resultDataChanClose && rateChanClose { break }
+		if resultDataChanClose && rateChanClose {
+			break
+		}
 		select {
 		case kr1 := <-resultDataChan:
 			resultDataChanClose = true
 			if kr1.error != nil {
 				_logInfo(r, fmt.Sprintf("ResultData DeleteMulti error: %v", err))
 				errors = append(errors, err)
-			}else {
+			} else {
 				if kr1.keys != nil && len(kr1.keys) > 0 {
 					_logInfo(r, fmt.Sprintf("ResultData keys len: %d.", len(kr1.keys)))
 					resultDataErrorChan = _deleteKeys(r, jsonKey, kr1.keys)
-				}else {
+				} else {
 					errorDataChanClose = true
 				}
 			}
@@ -283,11 +287,11 @@ func clearDbData(unixtime int64, r *http.Request) ([]error) {
 			if kr2.error != nil {
 				_logInfo(r, fmt.Sprintf("Rate DeleteMulti error: %v", err))
 				errors = append(errors, err)
-			}else {
+			} else {
 				if kr2.keys != nil && len(kr2.keys) > 0 {
 					_logInfo(r, fmt.Sprintf("Rste keys len: %d.", len(kr2.keys)))
 					rateErrorChan = _deleteKeys(r, jsonKey, kr2.keys)
-				}else {
+				} else {
 					errorChanClose = true
 				}
 			}
@@ -299,7 +303,9 @@ func clearDbData(unixtime int64, r *http.Request) ([]error) {
 	}
 
 	for {
-		if errorDataChanClose && errorChanClose { break }
+		if errorDataChanClose && errorChanClose {
+			break
+		}
 		select {
 		case err := <-resultDataErrorChan:
 			errorDataChanClose = true
@@ -321,7 +327,7 @@ func _logEror(r *http.Request, msg error) {
 	if r != nil {
 		ctx := appengine.NewContext(r)
 		logAE.Errorf(ctx, "Error: %v.", msg)
-	}else {
+	} else {
 		log.Fatal(msg)
 	}
 }
@@ -330,7 +336,7 @@ func _logInfo(r *http.Request, msg string) {
 	if r != nil {
 		ctx := appengine.NewContext(r)
 		logAE.Infof(ctx, "Info: %v", msg)
-	}else {
+	} else {
 		log.Printf("Info: %v", msg)
 	}
 }
@@ -342,21 +348,20 @@ func _getResultDataKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan 
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
-		}else {
+		} else {
 			ctx = context.Background()
 		}
 
 		client, err := datastore.NewClient(ctx, "rp-optima")
 		if err != nil {
-			out <- keyResult{error:err}
+			out <- keyResult{error: err}
 			return
 		}
 
 		if keys, err := client.GetAll(ctx, datastore.NewQuery("ResultData").Filter("timestamp<", unixtime).KeysOnly(), nil); err != nil {
-			out <- keyResult{error:err}
-			return
-		}else {
-			out <- keyResult{keys:keys}
+			out <- keyResult{error: err}
+		} else {
+			out <- keyResult{keys: keys}
 		}
 	}()
 	return out
@@ -369,13 +374,13 @@ func _getRatesKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan keyRe
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
-		}else {
+		} else {
 			ctx = context.Background()
 		}
 
 		client, err := datastore.NewClient(ctx, "rp-optima")
 		if err != nil {
-			out <- keyResult{error:err}
+			out <- keyResult{error: err}
 			return
 		}
 
@@ -386,49 +391,50 @@ func _getRatesKeys(r *http.Request, jsonKey []byte, unixtime int64) <-chan keyRe
 			out <- keyResult{keys:keys}
 		}*/
 		if keys, err := client.GetAll(ctx, datastore.NewQuery("Rate").Filter("id<", unixtime).KeysOnly(), nil); err != nil {
-			out <- keyResult{error:err}
-			return
-		}else {
-			out <- keyResult{keys:keys}
+			out <- keyResult{error: err}
+		} else {
+			out <- keyResult{keys: keys}
 		}
 	}()
 	return out
 }
 
-func _deleteKeys(r *http.Request, jsonKey []byte, keys []*datastore.Key) (<-chan error) {
+func _deleteKeys(r *http.Request, jsonKey []byte, keys []*datastore.Key) <-chan error {
 	out := make(chan error)
 	go func() {
 		defer close(out)
 		var ctx context.Context
 		if r != nil {
 			ctx = appengine.NewContext(r)
-		}else {
+		} else {
 			ctx = context.Background()
 		}
 
-		if client, err := datastore.NewClient(ctx, "rp-optima"); err != nil {
+		client, err := datastore.NewClient(ctx, "rp-optima")
+		if err != nil {
 			out <- err
 			return
-		}else {
-			counter := len(keys) / 500
-			for i := 0; i <= counter; i++ {
-				low := i * 500
-				top := len(keys) - 1
-				if (i + 1) * 500 < top {
-					top = (i + 1) * 500
-				}
-				if low > top {
-					break
-				}
+		}
 
-				_logInfo(r, fmt.Sprintf("keys delete loop, first key: %v.", keys[low]))
+		counter := len(keys) / 500
+		for i := 0; i <= counter; i++ {
+			low := i * 500
+			top := len(keys) - 1
+			if (i+1)*500 < top {
+				top = (i + 1) * 500
+			}
+			if low > top {
+				break
+			}
 
-				if err := client.DeleteMulti(ctx, keys[low:top]); err != nil {
-					out <- err
-					return
-				}
+			_logInfo(r, fmt.Sprintf("keys delete loop, first key: %v.", keys[low]))
+
+			if err := client.DeleteMulti(ctx, keys[low:top]); err != nil {
+				out <- err
+				return
 			}
 		}
+
 		out <- nil
 	}()
 	return out

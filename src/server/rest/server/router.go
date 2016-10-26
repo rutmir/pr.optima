@@ -1,10 +1,12 @@
 package server
+
 import (
 	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
-
+// NewRouter - return instance of main server router
 func NewRouter() *mux.Router {
 
 	router := mux.NewRouter().StrictSlash(true)

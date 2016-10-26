@@ -1,22 +1,24 @@
 package controllers
+
 import (
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"pr.optima/src/repository"
 	"pr.optima/src/core/entities"
+	"pr.optima/src/repository"
 )
 
+// TodoShow - test example of rest API endpoint
 func TodoShow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	var todoId int
+	var todoID int
 	var err error
-	if todoId, err = strconv.Atoi(vars["todoId"]); err != nil {
+	if todoID, err = strconv.Atoi(vars["todoId"]); err != nil {
 		panic(err)
 	}
-	todo := repository.RepoFindTodo(todoId)
+	todo := repository.RepoFindTodo(todoID)
 	if todo.Id > 0 {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
