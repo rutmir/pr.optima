@@ -3,7 +3,6 @@ package jobs
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net/http"
 
@@ -107,8 +106,6 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 			return -1, err
 		}
 
-		log.Printf("%v new ranges: %v", f.symbol, f.ranges)
-
 		// retrain mlp
 		classes, err := statistic.CalculateClasses(source, f.ranges)
 		if err != nil {
@@ -131,7 +128,6 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 		}
 
 		f.loopCount = 0
-		log.Printf("Mlp retrained - type: %s, symbol: %s, ranges: %d, limit: %d, frame: %d\n", f.trainType, f.symbol, f.rangeCount, f.Limit, f.frame)
 	}
 
 	if f.ranges != nil {

@@ -1,6 +1,7 @@
 # User-specific stuff:
 **/*/.idea/
 **/*/*/.idea/
+**/*.iml
 #.idea/workspace.xml
 #.idea/tasks.xml
 #.idea/dictionaries
