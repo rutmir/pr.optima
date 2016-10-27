@@ -1,13 +1,11 @@
 package jobs
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
-
 	"net/http"
-
-	"errors"
 
 	"pr.optima/src/core/entities"
 	"pr.optima/src/core/neural"
@@ -28,9 +26,8 @@ type fetchRatesWorkItem struct {
 	hIn        int
 	symbol     string
 	trainType  string
-
-	loopCount int
-	ranges    []float64
+	loopCount  int
+	ranges     []float64
 }
 
 func newFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol string) *fetchRatesWorkItem {
@@ -42,10 +39,8 @@ func newFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol stri
 	result.trainType = trainType
 	result.hIn = hIn
 	result.mlp = neural.MlpCreate1(frame, frame, hIn)
-
 	result.loopCount = 0
 	result.ranges = nil
-	//log.Printf("Created new work - Symbol: %s, ResultDataRepo length: %d, EfficiencyRepo length: %d\n", result.symbol, result.resultRepo.Len(), result.effRepo.Len())
 
 	return result
 }
@@ -57,7 +52,7 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 		rawSource = rates[len(rates)-f.Limit-1:]
 	}
 
-	_time := rawSource[len(rawSource)-1].Id
+	_time := rawSource[len(rawSource)-1].ID
 	source, isValid := extractFloatSet(rawSource, f.symbol)
 	sourceLength := len(source)
 
@@ -69,7 +64,7 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 		}
 		resultRepo := repository.NewResultDataRepo(f.Limit, true, f.symbol, r)
 		effRepo := repository.NewEfficiencyRepo(f.trainType, f.symbol, int32(f.rangeCount), int32(f.Limit), int32(f.frame), nil)
-		if last, found := resultRepo.Get(rawSource[sourceLength-2].Id); found {
+		if last, found := resultRepo.Get(rawSource[sourceLength-2].ID); found {
 			eff, _ := effRepo.GetLast()
 			last.Result = int32(class)
 			if last.Prediction == int32(class) {
@@ -97,7 +92,6 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 				return -1, err
 			}
 		}
-
 	}
 
 	if !isValid {
@@ -149,7 +143,6 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 		// process
 		process := convertArrayToFloat64(source)
 		rawResult := neural.MlpProcess(f.mlp, &process)
-
 		result := entities.ResultData{
 			RangesCount: int32(f.rangeCount),
 			TrainType:   f.trainType,
@@ -168,7 +161,6 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 			return int(result.Prediction), nil
 		}
 	}
-
 	return -1, nil
 }
 
@@ -223,7 +215,6 @@ func extractFloatSet(rates []entities.Rate, symbol string) ([]float32, bool) {
 			break
 		}
 	}
-
 	return result, isValid
 }
 

@@ -3,6 +3,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"errors"
 
 	"pr.optima/src/core/entities"
 	"pr.optima/src/core/statistic"
@@ -22,13 +23,13 @@ type Work struct {
 	hIn        int
 	symbol     string
 	trainType  string
-
 	loopCount  int
 	ranges     []float64
 	resultRepo repository.ResultDataRepo
 	effRepo    repository.EfficiencyRepo
 }
 
+// NewWork method
 func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 	result := new(Work)
 	result.symbol = symbol
@@ -38,7 +39,6 @@ func NewWork(rCount, frame, limit, hIn int, trainType, symbol string) *Work {
 	result.trainType = trainType
 	result.hIn = hIn
 	result.mlp = neural.MlpCreate1(frame, frame, hIn)
-
 	result.loopCount = 0
 	result.ranges = nil
 	result.resultRepo = repository.NewResultDataRepo(limit, true, symbol, nil)
@@ -55,7 +55,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		rawSource = rates[len(rates) - f.Limit - 1:]
 	}
 
-	_time := rawSource[len(rawSource) - 1].Id
+	_time := rawSource[len(rawSource) - 1].ID
 	source, isValid := extractFloatSet(rawSource, f.symbol)
 	sourceLength := len(source)
 
@@ -64,7 +64,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 		if class, err := statistic.DetectClass(f.ranges, source[sourceLength - 1] / source[sourceLength - 2]); err != nil {
 			return -1, err
 		}else {
-			if last, found := f.resultRepo.Get(rawSource[sourceLength - 2].Id); found {
+			if last, found := f.resultRepo.Get(rawSource[sourceLength - 2].ID); found {
 				eff, _ := f.effRepo.GetLast()
 				last.Result = int32(class)
 				if last.Prediction == int32(class) {
@@ -97,7 +97,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 
 	if !isValid {
 		f.ranges = nil
-		return -1, fmt.Errorf("No activity detected.")
+		return -1, errors.New("no activity detected")
 	}
 
 	// retrain mlp
@@ -128,7 +128,7 @@ func (f *Work)Process(rates []entities.Rate) (int, error) {
 				return -1, fmt.Errorf("MlpTrainLbfgs error info param: %d.", info)
 			}
 		default:
-			return -1, fmt.Errorf("Unknowen trainig type.")
+			return -1, errors.New("unknowen trainig type")
 		}
 
 		f.loopCount = 0

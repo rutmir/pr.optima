@@ -1,20 +1,23 @@
 package entities
+
 import (
 	"fmt"
 	"time"
 )
 
+// ResultResponse struct
 type ResultResponse struct {
-	Symbol     string     `json:"symbol"`
-	Timestamp  int64      `json:"timestamp"`
-	Data       []float32  `json:"data"`
-	Source     []int32    `json:"source"`
-	Time       []int64    `json:"time"`
-	Prediction int32      `json:"prediction"`
-	Result     int32      `json:"result"`
-	Levels     int32      `json:"levels"`
+	Symbol     string    `json:"symbol"`
+	Timestamp  int64     `json:"timestamp"`
+	Data       []float32 `json:"data"`
+	Source     []int32   `json:"source"`
+	Time       []int64   `json:"time"`
+	Prediction int32     `json:"prediction"`
+	Result     int32     `json:"result"`
+	Levels     int32     `json:"levels"`
 }
 
+// ToString method
 func (f *ResultResponse) ToString() string {
 	return fmt.Sprintf("ResultResponse { Symbol: %s, Timestamp: %v, Data: %v, Source: %v, Prediction: %d, Result: %d, Levels: %d }",
 		f.Symbol,
@@ -25,9 +28,13 @@ func (f *ResultResponse) ToString() string {
 		f.Result,
 		f.Levels)
 }
+
+// DateCreated method
 func (f *ResultResponse) DateCreated() time.Time {
 	return time.Unix(f.Timestamp, 0).UTC()
 }
+
+// Clone method
 func (f *ResultResponse) Clone() *ResultResponse {
 	result := new(ResultResponse)
 	result.Symbol = f.Symbol

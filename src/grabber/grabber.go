@@ -12,9 +12,9 @@ import 	(
 )
 
 const (
-	source1Url = "https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD"
-	source2Url = "http://www.apilayer.net/api/live?access_key=85c7d5e8f98fe83fa3fa81aafe489022&currencies=RUB,JPY,GBP,USD,EUR,CNY,CHF" //"85c7d5e8f98fe83fa3fa81aafe489022"
-	appEngineUrl = "https://rp-optima.appspot.com/api/refresh"
+	source1URL = "https://openexchangerates.org/api/latest.json?app_id=7cb63de0a50c4a9e88954d825b6505a1&base=USD"
+	source2URL = "http://www.apilayer.net/api/live?access_key=85c7d5e8f98fe83fa3fa81aafe489022&currencies=RUB,JPY,GBP,USD,EUR,CNY,CHF" //"85c7d5e8f98fe83fa3fa81aafe489022"
+	appEngineURL = "https://rp-optima.appspot.com/api/refresh"
 	repoSize = 200
 )
 const _authKey = "B7C05147C5A34376B30CEF2F289FBB6C"
@@ -141,7 +141,7 @@ func executeDomainLogic() {
 	}
 
 	// refresh appengine
-	if req, err := http.NewRequest("GET", appEngineUrl, nil); err == nil {
+	if req, err := http.NewRequest("GET", appEngineURL, nil); err == nil {
 		req.Header.Add("Auth", _authKey)
 		if resp, err := http.DefaultClient.Do(req); err != nil {
 			log.Printf("Refresh appengine Do Request error: %v", err)
@@ -154,7 +154,7 @@ func executeDomainLogic() {
 }
 
 func updateFromSource1() (bool, error) {
-	resp, err := http.Get(source1Url)
+	resp, err := http.Get(source1URL)
 	if err != nil {
 		return false, err
 	}
@@ -167,7 +167,7 @@ func updateFromSource1() (bool, error) {
 		log.Println(rate.ToShortString())
 		if err := _repo.Push(entities.Rate{
 			Base    : rate.Base,
-			Id      : rate.TimestampUnix,
+			ID      : rate.TimestampUnix,
 			RUB     : rate.Rates["RUB"],
 			JPY     : rate.Rates["JPY"],
 			GBP     : rate.Rates["GBP"],
@@ -179,16 +179,16 @@ func updateFromSource1() (bool, error) {
 			return false, nil
 		}
 	}else {
-		var error entities.ErrorResponse
-		dec.Decode(&error)
-		return false, fmt.Errorf(error.ToString())
+		var err entities.ErrorResponse
+		dec.Decode(&err)
+		return false, fmt.Errorf(err.ToString())
 	}
 	return true, nil
 }
 
 func updateFromSource2() (int64, bool, error) {
-	var result int64 = 0
-	resp, err := http.Get(source2Url)
+	var result int64
+	resp, err := http.Get(source2URL)
 	if err != nil {
 		return 0, false, err
 	}
@@ -201,7 +201,7 @@ func updateFromSource2() (int64, bool, error) {
 		log.Println(rate.ToShortString())
 		if err := _repo.Push(entities.Rate{
 			Base    : rate.Base,
-			Id      : rate.TimestampUnix,
+			ID      : rate.TimestampUnix,
 			RUB     : rate.Quotes["USDRUB"],
 			JPY     : rate.Quotes["USDJPY"],
 			GBP     : rate.Quotes["USDGBP"],
@@ -213,9 +213,9 @@ func updateFromSource2() (int64, bool, error) {
 			return 0, false, nil
 		}
 	}else {
-		var error entities.Error2Response
-		dec.Decode(&error)
-		return 0, false, fmt.Errorf(error.ToString())
+		var err entities.Error2Response
+		dec.Decode(&err)
+		return 0, false, fmt.Errorf(err.ToString())
 	}
 	return result, true, nil
 }

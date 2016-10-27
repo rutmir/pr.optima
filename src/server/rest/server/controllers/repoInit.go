@@ -209,7 +209,7 @@ func get10_100Score(eff entities.Efficiency) (float32, float32) {
 func populateDataFor(timestamp int64, frame int32, symbol string, results []entities.ResultData, result *entities.ResultResponse) error {
 	l := len(_rates)
 	addExtendedData := false
-	if _rates[l-1].Id > timestamp {
+	if _rates[l-1].ID > timestamp {
 		addExtendedData = true
 		frame++
 	}
@@ -219,14 +219,14 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 	var counter int32 = 1
 	var prevRate entities.Rate
 	for i := l - 1; i > 0 && counter <= frame; i-- {
-		if _rates[i].Id <= timestamp {
+		if _rates[i].ID <= timestamp {
 			if addExtendedData {
 				value, err := prevRate.GetForSymbol(symbol)
 				if err != nil {
 					return fmt.Errorf("ExtrudeDataFor error: %v", err)
 				}
 				result.Data[frame-counter] = value
-				result.Time[frame-counter] = prevRate.Id
+				result.Time[frame-counter] = prevRate.ID
 				counter++
 				addExtendedData = false
 			}
@@ -235,7 +235,7 @@ func populateDataFor(timestamp int64, frame int32, symbol string, results []enti
 				return fmt.Errorf("ExtrudeDataFor error: %v", err)
 			}
 			result.Data[frame-counter] = value
-			result.Time[frame-counter] = _rates[i].Id
+			result.Time[frame-counter] = _rates[i].ID
 			counter++
 		}
 		prevRate = _rates[i]

@@ -1,12 +1,13 @@
 package repository
+
 import (
 	"fmt"
 	"log"
 	"net/http"
 
+	"cloud.google.com/go/datastore"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
-	"cloud.google.com/go/datastore"
 	"pr.optima/src/core/entities"
 )
 
@@ -22,30 +23,35 @@ const (
 	clearResultData
 	endResultData
 )
+
 type commandResultData struct {
 	action    commandResultDataAction
 	value     entities.ResultData
 	size      int
 	timestamp int64
-	result    chan <- interface{}
-	data      chan <- []entities.ResultData
-	error     chan <- error
+	result    chan<- interface{}
+	data      chan<- []entities.ResultData
+	error     chan<- error
 }
+
 type singleResultData struct {
 	value entities.ResultData
 	found bool
 }
+
 type resultDataRepo struct {
 	pipe       chan commandResultData
 	symbol     string
 	limit      int
 	autoResize bool
-	lastId     int64
+	lastID     int64
 	data       []entities.ResultData
 	client     *datastore.Client
 }
+
 type commandResultDataAction int
 
+// ResultDataRepo type
 type ResultDataRepo interface {
 	Push(entities.ResultData) error
 	Sync(entities.ResultData) error
@@ -56,56 +62,69 @@ type ResultDataRepo interface {
 	Close() []entities.ResultData
 	Resize(int) (int, error)
 	Reload() (int, error)
-	Clear(int64) (error)
+	Clear(int64) error
 }
 
+// Push add new ResultData to repo
 func (rr *resultDataRepo) Push(value entities.ResultData) error {
 	reply := make(chan error)
 	rr.pipe <- commandResultData{action: pushResultData, value: value, error: reply}
 	err := <-reply
 	if err != nil {
 		return error(err)
-	} else {
-		return nil
 	}
+	return nil
 }
+
+// Sync repo
 func (rr *resultDataRepo) Sync(value entities.ResultData) error {
 	reply := make(chan error)
 	rr.pipe <- commandResultData{action: syncResultData, value: value, error: reply}
 	err := <-reply
 	if err != nil {
 		return error(err)
-	} else {
-		return nil
 	}
+	return nil
 }
+
+// Len length of the repo
 func (rr *resultDataRepo) Len() int {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: lengthResultData, result: reply}
 	return (<-reply).(int)
 }
+
+// GetAll - return all stored data
 func (rr *resultDataRepo) GetAll() []entities.ResultData {
 	reply := make(chan []entities.ResultData)
 	rr.pipe <- commandResultData{action: getAllResultData, data: reply}
 	return <-reply
 }
+
+// Close repo
 func (rr *resultDataRepo) Close() []entities.ResultData {
 	reply := make(chan []entities.ResultData)
 	rr.pipe <- commandResultData{action: endResultData, data: reply}
 	return <-reply
 }
+
+// GetLast retrun the last item from repo
 func (rr *resultDataRepo) GetLast() (entities.ResultData, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: getLastResultData, result: reply}
 	result := (<-reply).(singleResultData)
 	return result.value, result.found
 }
+
+// Get return item by timestamp
 func (rr *resultDataRepo) Get(timestamp int64) (entities.ResultData, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: getResultData, timestamp: timestamp, result: reply}
 	result := (<-reply).(singleResultData)
 	return result.value, result.found
 }
+
+// Resize chanhe size of the repo
 func (rr *resultDataRepo) Resize(size int) (int, error) {
 	if size < 0 {
 		return -1, fmt.Errorf("Size parameter: %d must be positive value.", size)
@@ -117,10 +136,11 @@ func (rr *resultDataRepo) Resize(size int) (int, error) {
 	result := (<-reply).(int)
 	if err != nil {
 		return -1, error(err)
-	} else {
-		return result, nil
 	}
+	return result, nil
 }
+
+// Reload update cached repo newest data
 func (rr *resultDataRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
@@ -129,36 +149,37 @@ func (rr *resultDataRepo) Reload() (int, error) {
 	result := (<-reply).(int)
 	if err != nil {
 		return -1, error(err)
-	} else {
-		return result, nil
 	}
+	return result, nil
 }
-func (rr *resultDataRepo) Clear(date int64) (error) {
+
+// Clear remove data from repo
+func (rr *resultDataRepo) Clear(date int64) error {
 	errReply := make(chan error)
 	reply := make(chan interface{})
 	rr.pipe <- commandResultData{action: clearResultData, error: errReply, result: reply, timestamp: date}
 	err := <-errReply
 	if err != nil {
 		return error(err)
-	} else {
-		return nil
 	}
+	return nil
 }
+
 func (rr *resultDataRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
 		case pushResultData:
-			if command.value.Timestamp < rr.lastId + 2500 {
-				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", rr.lastId, command.value.Timestamp)
+			if command.value.Timestamp < rr.lastID+2500 {
+				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", rr.lastID, command.value.Timestamp)
 				continue
 			}
 			_, err := rr.insertNewResultData(command.value)
 			if err == nil {
-				rr.lastId = command.value.Timestamp
+				rr.lastID = command.value.Timestamp
 				rr.data = append(rr.data, command.value)
 				l := len(rr.data)
 				if l > rr.limit && rr.autoResize {
-					rr.data = rr.data[l - rr.limit :]
+					rr.data = rr.data[l-rr.limit:]
 				}
 			}
 			command.error <- err
@@ -176,7 +197,7 @@ func (rr *resultDataRepo) run() {
 			if found {
 				_, err := rr.insertNewResultData(command.value)
 				command.error <- err
-			}else {
+			} else {
 				command.error <- fmt.Errorf("ResultDataRepo Sync error: local data with key '%s' not found", key)
 			}
 		case getAllResultData:
@@ -184,31 +205,31 @@ func (rr *resultDataRepo) run() {
 		case getLastResultData:
 			l := len(rr.data)
 			if l > 0 {
-				command.result <- singleResultData{value:rr.data[l - 1], found:true }
+				command.result <- singleResultData{value: rr.data[l-1], found: true}
 			} else {
-				command.result <- singleResultData{value:entities.ResultData{}, found:false }
+				command.result <- singleResultData{value: entities.ResultData{}, found: false}
 			}
 		case getResultData:
 			found := false
 			for _, item := range rr.data {
 				if item.Timestamp == command.timestamp {
-					command.result <- singleResultData{value:item, found:true }
+					command.result <- singleResultData{value: item, found: true}
 					found = true
 					break
 				}
 			}
 			if !found {
-				command.result <- singleResultData{value:entities.ResultData{}, found:false }
+				command.result <- singleResultData{value: entities.ResultData{}, found: false}
 			}
 		case lengthResultData:
 			command.result <- len(rr.data)
 		case resizeResultData:
 			l := len(rr.data)
 			if l >= command.size {
-				rr.data = rr.data[l - command.size :]
+				rr.data = rr.data[l-command.size:]
 				command.error <- nil
 				command.result <- len(rr.data)
-			}else {
+			} else {
 				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
 				command.result <- -1
 			}
@@ -216,14 +237,14 @@ func (rr *resultDataRepo) run() {
 			if err := rr.loadStartResultData(); err != nil {
 				command.error <- fmt.Errorf("Repo reload error: %v.", err)
 				command.result <- -1
-			}else {
+			} else {
 				command.error <- nil
 				command.result <- len(_rates)
 			}
 		case clearResultData:
 			if err := rr.clearDataRepo(command.timestamp); err != nil {
 				command.error <- fmt.Errorf("Repo clear error: %v.", err)
-			}else {
+			} else {
 				command.error <- nil
 			}
 		case endResultData:
@@ -232,11 +253,13 @@ func (rr *resultDataRepo) run() {
 		}
 	}
 }
+
+// NewResultDataRepo - return new instance of the ResultDataRepo
 func NewResultDataRepo(limit int, autoResize bool, symbol string, r *http.Request) ResultDataRepo {
 	var ctx context.Context
 	if r != nil {
 		ctx = appengine.NewContext(r)
-	}else {
+	} else {
 		ctx = context.Background()
 	}
 
@@ -275,15 +298,17 @@ func (rr *resultDataRepo) loadStartResultData() error {
 			rr.data[idx] = dst[i]
 			idx++
 		}
-		rr.lastId = rr.data[idx - 1].Timestamp
+		rr.lastID = rr.data[idx-1].Timestamp
 	}
 	return nil
 }
+
 func (rr *resultDataRepo) insertNewResultData(data entities.ResultData) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "ResultData", data.GetCompositeKey(), 0, nil), &data)
 }
-func (rr *resultDataRepo) clearDataRepo(unixdate int64) (error) {
+
+func (rr *resultDataRepo) clearDataRepo(unixdate int64) error {
 	ctx := context.Background()
 	var keys []*datastore.Key
 	var err error
@@ -293,7 +318,6 @@ func (rr *resultDataRepo) clearDataRepo(unixdate int64) (error) {
 	}
 	if keys != nil {
 		return rr.client.DeleteMulti(ctx, keys)
-	}else {
-		return err
 	}
+	return err
 }

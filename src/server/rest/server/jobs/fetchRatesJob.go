@@ -11,7 +11,6 @@ import (
 	"google.golang.org/appengine/urlfetch"
 
 	"pr.optima/src/core/entities"
-	"pr.optima/src/grabber/work"
 	"pr.optima/src/repository"
 	"pr.optima/src/server/rest/server/controllers"
 )
@@ -31,12 +30,12 @@ var (
 
 func init() {
 	works = make(map[string]*fetchRatesWorkItem)
-	works["RUB"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "RUB")
-	works["EUR"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "EUR")
-	works["GBP"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "GBP")
-	works["JPY"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "JPY")
-	works["CNY"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "CNY")
-	works["CHF"] = newFetchRatesWorkItem(6, 5, 20, 1, work.TTLbfgs, "CHF")
+	works["RUB"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "RUB")
+	works["EUR"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "EUR")
+	works["GBP"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "GBP")
+	works["JPY"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "JPY")
+	works["CNY"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "CNY")
+	works["CHF"] = newFetchRatesWorkItem(6, 5, 20, 1, TTLbfgs, "CHF")
 }
 
 // FetchRatesJob - method get rates data from open suorce
@@ -64,7 +63,6 @@ func FetchRatesJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	executeDomainLogic(w, r)
-
 }
 
 func executeDomainLogic(w http.ResponseWriter, r *http.Request) {
@@ -107,11 +105,10 @@ func updateFromSource2ForAppEngine(r *http.Request) (int64, bool, error) {
 		var rate entities.Rate2Response
 		dec.Decode(&rate)
 		result = rate.TimestampUnix
-		//log.Println(rate.ToShortString())
 		repo := repository.New(repoSize, true, r)
 		if err := repo.Push(entities.Rate{
 			Base: rate.Base,
-			Id:   rate.TimestampUnix,
+			ID:   rate.TimestampUnix,
 			RUB:  rate.Quotes["USDRUB"],
 			JPY:  rate.Quotes["USDJPY"],
 			GBP:  rate.Quotes["USDGBP"],
@@ -119,7 +116,6 @@ func updateFromSource2ForAppEngine(r *http.Request) (int64, bool, error) {
 			EUR:  rate.Quotes["USDEUR"],
 			CNY:  rate.Quotes["USDCNY"],
 			CHF:  rate.Quotes["USDCHF"]}); err != nil {
-			//log.Printf("Push rate to repo error: %v.", err)
 			return 0, false, fmt.Errorf("Push rate to repo error: %v", err)
 		}
 	} else {

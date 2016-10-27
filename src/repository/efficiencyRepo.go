@@ -1,12 +1,13 @@
 package repository
+
 import (
 	"fmt"
 	"log"
 	"net/http"
 
+	"cloud.google.com/go/datastore"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
-	"cloud.google.com/go/datastore"
 
 	"pr.optima/src/core/entities"
 )
@@ -20,19 +21,22 @@ const (
 	clearEfficiency
 	endEfficiency
 )
+
 type commandEfficiency struct {
 	action    commandEfficiencyAction
 	value     entities.Efficiency
 	size      int
 	timestamp int64
-	result    chan <- interface{}
-	data      chan <- []entities.Efficiency
-	error     chan <- error
+	result    chan<- interface{}
+	data      chan<- []entities.Efficiency
+	error     chan<- error
 }
+
 type singleEfficiency struct {
 	value entities.Efficiency
 	found bool
 }
+
 type efficiencyRepo struct {
 	pipe        chan commandEfficiency
 	symbol      string
@@ -43,8 +47,10 @@ type efficiencyRepo struct {
 	data        []entities.Efficiency
 	client      *datastore.Client
 }
+
 type commandEfficiencyAction int
 
+// EfficiencyRepo - type for presentation repo of Efficiency entity
 type EfficiencyRepo interface {
 	Sync(entities.Efficiency) error
 	Len() int
@@ -52,7 +58,7 @@ type EfficiencyRepo interface {
 	GetLast() (entities.Efficiency, bool)
 	Close() []entities.Efficiency
 	Reload() (int, error)
-	Clear(int64) (error)
+	Clear(int64) error
 }
 
 func (rr *efficiencyRepo) Sync(value entities.Efficiency) error {
@@ -61,31 +67,35 @@ func (rr *efficiencyRepo) Sync(value entities.Efficiency) error {
 	err := <-reply
 	if err != nil {
 		return error(err)
-	} else {
-		return nil
 	}
+	return nil
 }
+
 func (rr *efficiencyRepo) Len() int {
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: lengthEfficiency, result: reply}
 	return (<-reply).(int)
 }
+
 func (rr *efficiencyRepo) GetAll() []entities.Efficiency {
 	reply := make(chan []entities.Efficiency)
 	rr.pipe <- commandEfficiency{action: getAllEfficiency, data: reply}
 	return <-reply
 }
+
 func (rr *efficiencyRepo) Close() []entities.Efficiency {
 	reply := make(chan []entities.Efficiency)
 	rr.pipe <- commandEfficiency{action: endEfficiency, data: reply}
 	return <-reply
 }
+
 func (rr *efficiencyRepo) GetLast() (entities.Efficiency, bool) {
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: getLastEfficiency, result: reply}
 	result := (<-reply).(singleEfficiency)
 	return result.value, result.found
 }
+
 func (rr *efficiencyRepo) Reload() (int, error) {
 	errReply := make(chan error)
 	reply := make(chan interface{})
@@ -94,21 +104,21 @@ func (rr *efficiencyRepo) Reload() (int, error) {
 	result := (<-reply).(int)
 	if err != nil {
 		return -1, error(err)
-	} else {
-		return result, nil
 	}
+	return result, nil
 }
-func (rr *efficiencyRepo) Clear(date int64) (error) {
+
+func (rr *efficiencyRepo) Clear(date int64) error {
 	errReply := make(chan error)
 	reply := make(chan interface{})
 	rr.pipe <- commandEfficiency{action: clearEfficiency, error: errReply, result: reply, timestamp: date}
 	err := <-errReply
 	if err != nil {
 		return error(err)
-	} else {
-		return nil
 	}
+	return nil
 }
+
 func (rr *efficiencyRepo) run() {
 	for command := range rr.pipe {
 		switch command.action {
@@ -134,9 +144,9 @@ func (rr *efficiencyRepo) run() {
 		case getLastEfficiency:
 			l := len(rr.data)
 			if l > 0 {
-				command.result <- singleEfficiency{value:rr.data[l - 1], found:true }
+				command.result <- singleEfficiency{value: rr.data[l-1], found: true}
 			} else {
-				command.result <- singleEfficiency{value:entities.Efficiency{TrainType:rr.trainType, Symbol:rr.symbol, RangesCount:rr.rangesCount, Limit:rr.limit, Frame:rr.frame}, found:false }
+				command.result <- singleEfficiency{value: entities.Efficiency{TrainType: rr.trainType, Symbol: rr.symbol, RangesCount: rr.rangesCount, Limit: rr.limit, Frame: rr.frame}, found: false}
 			}
 		case lengthEfficiency:
 			command.result <- len(rr.data)
@@ -144,14 +154,14 @@ func (rr *efficiencyRepo) run() {
 			if err := rr.loadStartEfficiency(); err != nil {
 				command.error <- fmt.Errorf("Repo reload error: %v.", err)
 				command.result <- -1
-			}else {
+			} else {
 				command.error <- nil
 				command.result <- len(_rates)
 			}
 		case clearEfficiency:
 			if err := rr.clearEfficiency(command.timestamp); err != nil {
 				command.error <- fmt.Errorf("Repo clear error: %v.", err)
-			}else {
+			} else {
 				command.error <- nil
 			}
 		case endEfficiency:
@@ -160,12 +170,14 @@ func (rr *efficiencyRepo) run() {
 		}
 	}
 }
+
+// NewEfficiencyRepo return instance of the EfficiencyRepo
 func NewEfficiencyRepo(trainType, symbol string, rangesCount, limit, frame int32, r *http.Request) EfficiencyRepo {
 	// todo: switch from http.Request to context.Context
 	var ctx context.Context
 	if r != nil {
 		ctx = appengine.NewContext(r)
-	}else {
+	} else {
 		ctx = context.Background()
 	}
 
@@ -210,11 +222,13 @@ func (rr *efficiencyRepo) loadStartEfficiency() error {
 	}
 	return nil
 }
+
 func (rr *efficiencyRepo) insertNewEfficiency(data entities.Efficiency) (*datastore.Key, error) {
 	ctx := context.Background()
 	return rr.client.Put(ctx, datastore.NewKey(ctx, "Efficiency", data.GetCompositeKey(), 0, nil), &data)
 }
-func (rr *efficiencyRepo) clearEfficiency(unixdate int64) (error) {
+
+func (rr *efficiencyRepo) clearEfficiency(unixdate int64) error {
 	ctx := context.Background()
 	var keys []*datastore.Key
 	var err error
@@ -224,7 +238,6 @@ func (rr *efficiencyRepo) clearEfficiency(unixdate int64) (error) {
 	}
 	if keys != nil {
 		return rr.client.DeleteMulti(ctx, keys)
-	}else {
-		return err
 	}
+	return err
 }
