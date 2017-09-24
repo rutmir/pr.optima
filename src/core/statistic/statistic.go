@@ -6,7 +6,7 @@ import (
 	"sort"
 )
 
-// CalculateRanges genetare diapason of ranges
+// CalculateRanges generate diapason of ranges
 func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 	if rangesCount < 1 {
 		return nil, errors.New("the ranges count must be positive value more than 1")
@@ -53,7 +53,7 @@ func CalculateRanges(list []float32, rangesCount int) ([]float64, error) {
 	return nil, errors.New("CalculateRanges errer: ranges not vialid")
 }
 
-// CalculateEvenRanges genetare even diapasons of ranges
+// CalculateEvenRanges generate even diapasons of ranges
 func CalculateEvenRanges(list []float32, rangesCount int) ([]float64, error) {
 	if rangesCount < 1 || rangesCount%2 == 1 {
 		return nil, errors.New("the ranges count must be positive even value more than 1")
@@ -99,7 +99,7 @@ func CalculateEvenRanges(list []float32, rangesCount int) ([]float64, error) {
 	return nil, errors.New("CalculateEvenRanges errer: ranges not vialid")
 }
 
-// CalculateEvenRanges2 genetare even diapasons of ranges
+// CalculateEvenRanges2 generate even diapasons of ranges
 func CalculateEvenRanges2(list []float32, rangesCount int) ([]float64, error) {
 	if rangesCount < 4 || rangesCount%2 == 1 {
 		return nil, errors.New("the ranges count must be positive even value more than 3")

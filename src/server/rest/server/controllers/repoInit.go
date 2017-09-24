@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
-	//	"sync"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,8 +11,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	logAE "google.golang.org/appengine/log"
-
-	"errors"
 
 	"pr.optima/src/core/entities"
 	"pr.optima/src/repository"

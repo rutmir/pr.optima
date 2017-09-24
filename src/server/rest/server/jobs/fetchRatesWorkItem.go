@@ -46,7 +46,7 @@ func newFetchRatesWorkItem(rCount, frame, limit, hIn int, trainType, symbol stri
 
 func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (int, error) {
 	// prepare income data
-	var rawSource []entities.Rate
+	var rawSource []entities.Rate = rates
 	if len(rates) > f.Limit+1 {
 		rawSource = rates[len(rates)-f.Limit-1:]
 	}
@@ -66,7 +66,8 @@ func (f *fetchRatesWorkItem) Process(rates []entities.Rate, r *http.Request) (in
 		if last, found := resultRepo.Get(rawSource[sourceLength-2].ID); found {
 			eff, _ := effRepo.GetLast()
 			last.Result = int32(class)
-			if last.Prediction == int32(class) {
+			if last.Prediction == last.Result {
+				// prediction and result completely match
 				eff.LastSD = append(eff.LastSD, 1)
 			} else {
 				rcHalf := float32(f.rangeCount-1) / 2
