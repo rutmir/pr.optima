@@ -15,21 +15,21 @@ type RateResponse struct {
 }
 
 // ToString method
-func (f RateResponse) ToString() string {
+func (f *RateResponse) ToString() string {
 	return fmt.Sprintf("Base: %s\nTimestamp: %v\nRates: %v", f.Base, f.Timestamp(), f.Rates)
 }
 
 // ToShortString method
-func (f RateResponse) ToShortString() string {
+func (f *RateResponse) ToShortString() string {
 	return fmt.Sprintf("RateResponse - Base: %s, Timestamp: %v", f.Base, f.Timestamp())
 }
 
 // Timestamp method
-func (f RateResponse) Timestamp() time.Time {
+func (f *RateResponse) Timestamp() time.Time {
 	return time.Unix(f.TimestampUnix, 0).UTC()
 }
 
 // SetTimestamp method
-func (f RateResponse) SetTimestamp(timestamp time.Time) {
+func (f *RateResponse) SetTimestamp(timestamp time.Time) {
 	f.TimestampUnix = timestamp.Unix()
 }

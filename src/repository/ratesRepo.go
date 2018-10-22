@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
+
 	"pr.optima/src/core/entities"
 )
 
@@ -110,7 +111,7 @@ func (rr rateRepo) GetLast() (entities.Rate, bool) {
 // Resize - resize repo length
 func (rr rateRepo) Resize(size int) (int, error) {
 	if size < 0 {
-		return -1, fmt.Errorf("Size parameter: %d must be positive value.", size)
+		return -1, fmt.Errorf("size parameter: %d must be positive value", size)
 	}
 	errReply := make(chan error)
 	reply := make(chan interface{})
@@ -152,8 +153,8 @@ func (rr rateRepo) run() {
 	for command := range rr {
 		switch command.action {
 		case pushRate:
-			if command.value.ID < _lastID+2500 {
-				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", _lastID, command.value.ID)
+			if command.value.ID < (_lastID + 2500) {
+				command.error <- fmt.Errorf("shift required (last: %d, new: %d)", _lastID, command.value.ID)
 				continue
 			}
 			_, err := insertNewRate(command.value)
@@ -184,12 +185,12 @@ func (rr rateRepo) run() {
 				command.error <- nil
 				command.result <- len(_rates)
 			} else {
-				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
+				command.error <- fmt.Errorf("repo size: %d less than new size: %d", l, command.size)
 				command.result <- -1
 			}
 		case reloadRates:
 			if err := loadStartRates(); err != nil {
-				command.error <- fmt.Errorf("Repo reload error: %v.", err)
+				command.error <- fmt.Errorf("repo reload error: %v", err)
 				command.result <- -1
 			} else {
 				command.error <- nil
@@ -197,7 +198,7 @@ func (rr rateRepo) run() {
 			}
 		case clearRates:
 			if err := fnClearRates(command.timestamp); err != nil {
-				command.error <- fmt.Errorf("Repo clear error: %v.", err)
+				command.error <- fmt.Errorf("repo clear error: %v", err)
 			} else {
 				command.error <- nil
 			}

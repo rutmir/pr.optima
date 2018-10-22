@@ -7,12 +7,12 @@ import (
 
 // Signal struct
 type Signal struct {
-	RangesCount int32   `json:"rangesCount"`
-	Symbol      string  `json:"symbol"`
-	Timestamp   int64   `json:"timestamp"`
-	Prediction  int32   `json:"prediction"`
 	Score10     float32 `json:"score10"`
 	Score100    float32 `json:"score100"`
+	Timestamp   int64   `json:"timestamp"`
+	RangesCount int32   `json:"rangesCount"`
+	Prediction  int32   `json:"prediction"`
+	Symbol      string  `json:"symbol"`
 }
 
 // ToString method

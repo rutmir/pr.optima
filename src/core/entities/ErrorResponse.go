@@ -11,6 +11,6 @@ type ErrorResponse struct {
 }
 
 // ToString method
-func (f ErrorResponse) ToString() string {
+func (f *ErrorResponse) ToString() string {
 	return fmt.Sprintf("Error: %t\nStatus: %d\nMessage: %s\nDescription: %s", f.Error, f.Status, f.Message, f.Description)
 }

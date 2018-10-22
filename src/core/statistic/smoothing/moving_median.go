@@ -36,7 +36,7 @@ func MM(source []float64, q int) ([]float64, error) {
 
 		if idx == q {
 			var tmpSum float64
-			for i := 0; i < n; i++ {
+			for i := 0; float64(i) < n; i++ {
 				tmpSum += weightedSource[i]
 			}
 			item = tmpSum

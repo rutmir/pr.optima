@@ -16,21 +16,21 @@ type Rate2Response struct {
 }
 
 // ToString method
-func (f Rate2Response) ToString() string {
+func (f *Rate2Response) ToString() string {
 	return fmt.Sprintf("Base: %s\nTimestamp: %v\nRates: %v", f.Base, f.Timestamp(), f.Quotes)
 }
 
 // ToShortString method
-func (f Rate2Response) ToShortString() string {
+func (f *Rate2Response) ToShortString() string {
 	return fmt.Sprintf("Rate2Response - Base: %s, Timestamp: %v", f.Base, f.Timestamp())
 }
 
 // Timestamp method
-func (f Rate2Response) Timestamp() time.Time {
+func (f *Rate2Response) Timestamp() time.Time {
 	return time.Unix(f.TimestampUnix, 0).UTC()
 }
 
 // SetTimestamp method
-func (f Rate2Response) SetTimestamp(timestamp time.Time) {
+func (f *Rate2Response) SetTimestamp(timestamp time.Time) {
 	f.TimestampUnix = timestamp.Unix()
 }

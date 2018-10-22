@@ -18,3 +18,5 @@ src/alglib/alglib/bin
 src/server/front-end/.tmp
 src/server/front-end/node_modules
 src/server/front-end/bower_components
+
+service-account\.key\.json

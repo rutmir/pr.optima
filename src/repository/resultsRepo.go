@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
+
 	"pr.optima/src/core/entities"
 )
 
@@ -127,7 +128,7 @@ func (rr *resultDataRepo) Get(timestamp int64) (entities.ResultData, bool) {
 // Resize chanhe size of the repo
 func (rr *resultDataRepo) Resize(size int) (int, error) {
 	if size < 0 {
-		return -1, fmt.Errorf("Size parameter: %d must be positive value.", size)
+		return -1, fmt.Errorf("size parameter: %d must be positive value", size)
 	}
 	errReply := make(chan error)
 	reply := make(chan interface{})
@@ -170,7 +171,7 @@ func (rr *resultDataRepo) run() {
 		switch command.action {
 		case pushResultData:
 			if command.value.Timestamp < rr.lastID+2500 {
-				command.error <- fmt.Errorf("Shift required (last: %d, new: %d).", rr.lastID, command.value.Timestamp)
+				command.error <- fmt.Errorf("shift required (last: %d, new: %d)", rr.lastID, command.value.Timestamp)
 				continue
 			}
 			_, err := rr.insertNewResultData(command.value)
@@ -230,12 +231,12 @@ func (rr *resultDataRepo) run() {
 				command.error <- nil
 				command.result <- len(rr.data)
 			} else {
-				command.error <- fmt.Errorf("Repo size: %d less than new size: %d.", l, command.size)
+				command.error <- fmt.Errorf("repo size: %d less than new size: %d", l, command.size)
 				command.result <- -1
 			}
 		case reloadResultData:
 			if err := rr.loadStartResultData(); err != nil {
-				command.error <- fmt.Errorf("Repo reload error: %v.", err)
+				command.error <- fmt.Errorf("repo reload error: %v", err)
 				command.result <- -1
 			} else {
 				command.error <- nil
@@ -243,7 +244,7 @@ func (rr *resultDataRepo) run() {
 			}
 		case clearResultData:
 			if err := rr.clearDataRepo(command.timestamp); err != nil {
-				command.error <- fmt.Errorf("Repo clear error: %v.", err)
+				command.error <- fmt.Errorf("repo clear error: %v", err)
 			} else {
 				command.error <- nil
 			}

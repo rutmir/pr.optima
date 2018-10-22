@@ -177,7 +177,7 @@ func DetectClass(ranges []float64, element float32) (int, error) {
 	if element < 0 {
 		return -1, errors.New("the element must be positive value more than 0")
 	}
-	if ranges == nil || len(ranges) == 0 {
+	if len(ranges) == 0 {
 		return -1, errors.New("quantity of ranges must be more than 0")
 	}
 
